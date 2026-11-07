@@ -33,6 +33,19 @@ You need Android Studio (Ladybug or newer) or JDK 17 plus the Android SDK.
 
 If you want to go back to your old launcher, change the default home app in your phone's settings.
 
+## Updates (from anywhere)
+
+Every push to `main` makes GitHub build a signed APK and publish it as a
+[release](https://github.com/gotlibsh/still-launcher/releases) (see `.github/workflows/release.yml`).
+On the phone, [Obtainium](https://github.com/ImranR98/Obtainium) watches the repo and offers each new version.
+
+- Obtainium: *Add app*, paste `https://github.com/gotlibsh/still-launcher`, then install.
+- The release signing key lives only on the PC in `%USERPROFILE%\.still-signing\` (keep a backup!) and
+  in the repo's encrypted Actions secrets `STILL_KEYSTORE_BASE64`, `STILL_KEYSTORE_PASSWORD`,
+  `STILL_KEY_ALIAS` and `STILL_KEY_PASSWORD`. It is never committed.
+- Local `installDebug` builds install as a separate app called **Still dev**, so you can try changes
+  without touching the release version.
+
 ## Adding your own widget
 
 Each block on the home screen is a `HomeWidget`. To add one:

@@ -4,6 +4,11 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Release signing comes from environment variables (set by the GitHub release workflow).
+// The key itself never lives in this repo.
+val releaseKeystore: String? = System.getenv("STILL_KEYSTORE_FILE")
+val buildNumber: Int = System.getenv("STILL_VERSION_CODE")?.toIntOrNull() ?: 1
+
 android {
     namespace = "com.gotlibsh.still"
     compileSdk = 35
@@ -12,18 +17,38 @@ android {
         applicationId = "com.gotlibsh.still"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = buildNumber
+        versionName = "0.1.$buildNumber"
+        manifestPlaceholders["appLabel"] = "Still"
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("STILL_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("STILL_KEY_ALIAS")
+                keyPassword = System.getenv("STILL_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            // Local builds install as a separate "Still dev" app, so they never clash
+            // with the signed release that Obtainium keeps up to date.
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            manifestPlaceholders["appLabel"] = "Still dev"
+        }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signs release builds with the debug key so you can sideload them easily.
-            // Replace with your own signing config before publishing anywhere.
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            signingConfig = if (releaseKeystore != null) {
+                signingConfigs.getByName("release")
+            } else {
+                // Without the release key (local builds), fall back to the debug key.
+                signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {
