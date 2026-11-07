@@ -40,7 +40,10 @@ import com.google.home.matter.standard.OnOffPluginUnitDevice
 import com.google.home.matter.standard.RoomAirConditionerDevice
 import com.google.home.matter.standard.ThermostatDevice
 import com.google.home.matter.standard.WaterHeaterDevice
+import android.util.Log
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -69,7 +72,10 @@ class GoogleHomeRepository(private val context: Context) {
         Home.getClient(
             context,
             HomeConfig(
-                coroutineContext = Dispatchers.IO,
+                // Google Home runs its own background work here. A failure in it must never
+                // take the launcher down, so log it instead of crashing.
+                coroutineContext = Dispatchers.IO + SupervisorJob() +
+                    CoroutineExceptionHandler { _, e -> Log.w("StillGoogleHome", "Google Home background error", e) },
                 factoryRegistry = FactoryRegistry(traits = TRAITS, types = DEVICE_TYPES),
             ),
         )
@@ -93,7 +99,8 @@ class GoogleHomeRepository(private val context: Context) {
         val result = client.requestPermissions(ForcePermissionFlow.FORCE_LAUNCH)
         if (result.status == PermissionsResultStatus.SUCCESS) null
         else "Google said: ${result.status}${result.errorMessage?.let { " ($it)" } ?: ""}"
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
+        Log.w("StillGoogleHome", "requestPermissions failed", e)
         "Google Home error: ${e.message ?: e.javaClass.simpleName}"
     }
 
