@@ -21,6 +21,8 @@ data class LauncherSettings(
     /** Apps opened by swiping left / right on the home screen ([AppInfo.key], empty = none). */
     val swipeLeftAppKey: String = "",
     val swipeRightAppKey: String = "",
+    /** Google Home device ids shown as switches by the Home switches widget, in order. */
+    val homeDeviceIds: List<String> = emptyList(),
 ) {
     companion object {
         const val MAX_FAVORITES = 8

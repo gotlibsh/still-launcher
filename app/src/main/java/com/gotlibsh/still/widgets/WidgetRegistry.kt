@@ -4,6 +4,7 @@ import com.gotlibsh.still.data.LauncherSettings
 import com.gotlibsh.still.data.SettingsCodec
 import com.gotlibsh.still.widgets.clock.ClockWidget
 import com.gotlibsh.still.widgets.favorites.FavoritesWidget
+import com.gotlibsh.still.widgets.homecontrols.HomeControlsWidget
 import com.gotlibsh.still.widgets.notes.NotesWidget
 import com.gotlibsh.still.widgets.weather.WeatherWidget
 
@@ -14,6 +15,7 @@ object WidgetRegistry {
         WeatherWidget,
         ClockWidget,
         NotesWidget,
+        HomeControlsWidget,
         FavoritesWidget,
     )
 

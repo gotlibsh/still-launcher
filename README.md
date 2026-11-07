@@ -14,6 +14,24 @@ Top to bottom (you can reorder or switch each one off in settings):
 | **Note & notes link** | A short note on the home screen (tap to edit). An optional `open notes →` link opens your real notes, either an app (Keep, Obsidian…) or any link (`https://…`, `obsidian://…`, `notion://…`). |
 | **Favorite apps** | Up to 8 apps shown as plain words. |
 
+## Google Home switches (optional)
+
+The **Google Home switches** widget shows chosen Google Home devices (AC, boiler, plugs, lights)
+as plain text lines like `Living room AC   off`; tap to flip. It uses Google's
+[Home APIs](https://developers.home.google.com/apis/android/overview). Turn it on in
+*Settings → Google Home → Connect Google Home*, then *+ add device*.
+
+One-time Google setup (Google only lets registered apps ask for Home access):
+
+1. In the [Google Cloud console](https://console.cloud.google.com/), create a project (e.g. "Still").
+2. *APIs & Services → OAuth consent screen*: choose **External**, fill in the app name and your email,
+   add no scopes, and under **Audience → Test users** add your own Google account. Leave it in *Testing*.
+3. *APIs & Services → Credentials → Create credentials → OAuth client ID → Android*, twice:
+   - Package `com.gotlibsh.still`, SHA-1 of the release key (from `keytool -list -v -keystore %USERPROFILE%\.still-signing\still-release.jks`).
+   - Package `com.gotlibsh.still.dev`, SHA-1 of the debug key (from `gradlew signingReport`), for local test builds.
+
+The SDK isn't on a Maven server; the build downloads it from Google into `.home-sdk/` on first sync.
+
 ## Gestures
 
 - **Swipe up**: all apps, with the keyboard already open for search. If only one app matches, it opens right away (you can turn that off).

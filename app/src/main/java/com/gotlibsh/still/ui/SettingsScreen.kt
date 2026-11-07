@@ -35,6 +35,13 @@ import com.gotlibsh.still.data.SettingsCodec
 import com.gotlibsh.still.data.WeatherPlace
 import com.gotlibsh.still.stillApp
 import com.gotlibsh.still.widgets.WidgetRegistry
+import com.gotlibsh.still.widgets.homecontrols.HomeControlsWidget
+import com.gotlibsh.still.widgets.homecontrols.HomeSwitch
+import com.google.home.PermissionsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 
 private enum class Picker { Favorite, NotesApp, SwipeLeft, SwipeRight }
@@ -101,6 +108,10 @@ fun SettingsScreen(
         item { Section("Notes link") }
         item { NotesSettings(settings, appsByKey, vm, onPickApp = { picker = Picker.NotesApp }) }
 
+        // Google Home
+        item { Section("Google Home") }
+        item { GoogleHomeSettings(settings, vm) }
+
         // Gestures
         item { Section("Swipe gestures") }
         item { SwipeSetting("Swipe left opens", settings.swipeLeftAppKey, appsByKey, onPick = { picker = Picker.SwipeLeft }, onClear = { vm.edit { setSwipeLeftApp("") } }) }
@@ -162,6 +173,107 @@ fun SettingsScreen(
             onDismiss = { picker = null },
         )
         null -> Unit
+    }
+}
+
+@Composable
+private fun GoogleHomeSettings(settings: LauncherSettings, vm: LauncherViewModel) {
+    val repo = LocalContext.current.stillApp().googleHome
+    val scope = rememberCoroutineScope()
+    val permission by remember(repo) { repo.permissionState }
+        .collectAsState(initial = PermissionsState.PERMISSIONS_STATE_UNINITIALIZED)
+    val connected = permission == PermissionsState.GRANTED
+    var picking by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("") }
+
+    Column {
+        Text(
+            "Show a few Google Home devices (AC, boiler, lights…) as on/off switches on the home screen.",
+            color = StillColors.faint,
+            fontSize = 14.sp,
+        )
+        when (permission) {
+            PermissionsState.GRANTED -> SettingRow("Google Home", "connected · change access") {
+                scope.launch { repo.requestAccess() }
+            }
+            PermissionsState.PERMISSIONS_STATE_UNINITIALIZED -> SettingRow("Google Home", "checking…")
+            else -> SettingRow("Connect Google Home") {
+                status = "waiting for Google…"
+                scope.launch { status = if (repo.requestAccess()) "" else "Not connected. See the README for the one-time Google setup." }
+            }
+        }
+        if (status.isNotEmpty()) Text(status, color = StillColors.faint, fontSize = 14.sp)
+
+        if (connected) {
+            val switches by remember(repo) { repo.switches() }.collectAsState(initial = emptyList())
+            val ids = settings.homeDeviceIds
+            ids.forEach { id ->
+                OrderRow(
+                    label = switches.firstOrNull { it.id == id }?.name ?: "(device not found)",
+                    trailing = "remove",
+                    onClick = { vm.edit { setHomeDevices(ids - id) } },
+                    onUp = { vm.edit { setHomeDevices(SettingsCodec.move(ids, id, -1)) } },
+                    onDown = { vm.edit { setHomeDevices(SettingsCodec.move(ids, id, +1)) } },
+                )
+            }
+            SettingRow("+ add device") { picking = true }
+            if (picking) {
+                HomeDevicePickerDialog(
+                    devices = switches.filter { it.id !in ids },
+                    onPick = { device ->
+                        picking = false
+                        vm.edit {
+                            setHomeDevices(ids + device.id)
+                            // Adding the first device switches the widget on.
+                            if (!WidgetRegistry.isEnabled(HomeControlsWidget, settings)) {
+                                setDisabledWidgets(WidgetRegistry.toggled(HomeControlsWidget, settings))
+                            }
+                        }
+                    },
+                    onDismiss = { picking = false },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeDevicePickerDialog(
+    devices: List<HomeSwitch>,
+    onPick: (HomeSwitch) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.7f)
+                .background(StillColors.background)
+                .padding(24.dp),
+        ) {
+            Text("Add a Google Home device", fontSize = 14.sp, color = StillColors.dim)
+            if (devices.isEmpty()) {
+                Text(
+                    "No more on/off devices found in your Google Home.",
+                    fontSize = 16.sp,
+                    color = StillColors.faint,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+            LazyColumn(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                items(devices, key = { it.id }) { device ->
+                    Text(
+                        text = device.name,
+                        fontSize = 18.sp,
+                        color = StillColors.text,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .quietClickable { onPick(device) }
+                            .padding(vertical = 10.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
