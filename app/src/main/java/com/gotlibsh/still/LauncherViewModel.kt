@@ -43,7 +43,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun connectGoogleHome() {
         if (awayForGoogleHome) return
         awayForGoogleHome = true
-        googleHomeStatus.value = "waiting for Google…"
+        googleHomeStatus.value = "waiting for Googleâ€¦"
         viewModelScope.launch {
             try {
                 googleHomeStatus.value = still.googleHome.requestAccess().orEmpty()

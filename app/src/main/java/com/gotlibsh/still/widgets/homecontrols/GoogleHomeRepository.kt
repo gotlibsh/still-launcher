@@ -43,7 +43,6 @@ import com.google.home.matter.standard.WaterHeaterDevice
 import android.util.Log
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -74,7 +73,8 @@ class GoogleHomeRepository(private val context: Context) {
             HomeConfig(
                 // Google Home runs its own background work here. A failure in it must never
                 // take the launcher down, so log it instead of crashing.
-                coroutineContext = Dispatchers.IO + SupervisorJob() +
+                // No Job here: the SDK uses this context in flowOn(), which rejects one.
+                coroutineContext = Dispatchers.IO +
                     CoroutineExceptionHandler { _, e -> Log.w("StillGoogleHome", "Google Home background error", e) },
                 factoryRegistry = FactoryRegistry(traits = TRAITS, types = DEVICE_TYPES),
             ),
