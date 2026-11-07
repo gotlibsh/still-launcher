@@ -28,9 +28,35 @@ data class LauncherSettings(
     val homeDeviceIds: List<String> = emptyList(),
     /** Your own names for apps: [AppInfo.key] -> name. */
     val appNames: Map<String, String> = emptyMap(),
+    /** A [Background] id. */
+    val background: String = Background.DEFAULT.id,
+    /** How much to darken the phone's wallpaper, 0-80 (percent). */
+    val wallpaperDim: Int = 40,
 ) {
     companion object {
         const val MAX_FAVORITES = 8
+    }
+}
+
+/**
+ * Home background: a calm solid color, or the phone's own wallpaper with a dark layer on top.
+ * All choices are dark so the light text always stays readable.
+ */
+enum class Background(val id: String, val title: String, val argb: Long?) {
+    BLACK("black", "black", 0xFF000000),
+    CHARCOAL("charcoal", "warm charcoal", 0xFF1C1A18),
+    SLATE("slate", "deep slate", 0xFF161B22),
+    NAVY("navy", "midnight blue", 0xFF0D1426),
+    FOREST("forest", "dark forest", 0xFF0F1A14),
+    PLUM("plum", "dusk plum", 0xFF1A1220),
+    WALLPAPER("wallpaper", "phone wallpaper", null);
+
+    companion object {
+        val DEFAULT = BLACK
+        val DIM_STEPS = listOf(0, 20, 40, 60, 80)
+        fun of(id: String?): Background = entries.firstOrNull { it.id == id } ?: DEFAULT
+        fun next(current: Background): Background = entries[(current.ordinal + 1) % entries.size]
+        fun nextDim(current: Int): Int = DIM_STEPS.firstOrNull { it > current } ?: DIM_STEPS.first()
     }
 }
 

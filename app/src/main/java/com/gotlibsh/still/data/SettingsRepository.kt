@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +32,8 @@ class SettingsRepository(private val context: Context) {
         val swipeRightApp = stringPreferencesKey("swipe_right_app")
         val homeDevices = stringPreferencesKey("home_device_ids")
         val appNames = stringPreferencesKey("app_names")
+        val background = stringPreferencesKey("background")
+        val wallpaperDim = intPreferencesKey("wallpaper_dim")
     }
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
@@ -56,6 +59,8 @@ class SettingsRepository(private val context: Context) {
         swipeRightAppKey = this[Keys.swipeRightApp].orEmpty(),
         homeDeviceIds = SettingsCodec.decodeList(this[Keys.homeDevices]),
         appNames = SettingsCodec.decodeNames(this[Keys.appNames]),
+        background = Background.of(this[Keys.background]).id,
+        wallpaperDim = (this[Keys.wallpaperDim] ?: 40).coerceIn(0, 80),
     )
 
     suspend fun setFavorites(keys: List<String>) = put(Keys.favorites, SettingsCodec.encodeList(keys.take(LauncherSettings.MAX_FAVORITES)))
@@ -74,6 +79,9 @@ class SettingsRepository(private val context: Context) {
     suspend fun setSwipeLeftApp(key: String) = put(Keys.swipeLeftApp, key)
     suspend fun setSwipeRightApp(key: String) = put(Keys.swipeRightApp, key)
     suspend fun setHomeDevices(ids: List<String>) = put(Keys.homeDevices, SettingsCodec.encodeList(ids))
+
+    suspend fun setBackground(background: Background) = put(Keys.background, background.id)
+    suspend fun setWallpaperDim(percent: Int) = context.dataStore.edit { it[Keys.wallpaperDim] = percent.coerceIn(0, 80) }
 
     /** A blank name goes back to the app's own name. */
     suspend fun setAppName(appKey: String, name: String) {

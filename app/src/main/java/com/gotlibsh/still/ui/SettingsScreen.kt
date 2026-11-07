@@ -32,6 +32,7 @@ import com.gotlibsh.still.LauncherViewModel
 import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.LauncherSettings
 import com.gotlibsh.still.data.SettingsCodec
+import com.gotlibsh.still.data.Background
 import com.gotlibsh.still.data.WeatherPlace
 import com.gotlibsh.still.data.allWeatherPlaces
 import com.gotlibsh.still.stillApp
@@ -99,6 +100,24 @@ fun SettingsScreen(
         }
         if (settings.favorites.size < LauncherSettings.MAX_FAVORITES) {
             item { SettingRow("+ add app") { picker = Picker.Favorite } }
+        }
+
+        // Background
+        item { Section("Background") }
+        item {
+            Column {
+                val bg = Background.of(settings.background)
+                SettingRow("Background", bg.title) { vm.edit { setBackground(Background.next(bg)) } }
+                if (bg == Background.WALLPAPER) {
+                    SettingRow("Dim wallpaper", "${settings.wallpaperDim}%") {
+                        vm.edit { setWallpaperDim(Background.nextDim(settings.wallpaperDim)) }
+                    }
+                    Text(
+                        "Shows the wallpaper set in your phone's settings. Go home to see the dim level.",
+                        color = StillColors.faint, fontSize = 14.sp,
+                    )
+                }
+            }
         }
 
         // Weather

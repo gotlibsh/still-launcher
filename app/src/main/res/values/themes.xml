@@ -1,6 +1,9 @@
 <resources>
     <style name="Theme.Still" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/black</item>
+        <!-- See-through so the "phone wallpaper" background can show; Compose paints the
+             chosen color (or a dim layer) on top. -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowShowWallpaper">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>

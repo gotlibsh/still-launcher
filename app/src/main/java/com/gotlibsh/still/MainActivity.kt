@@ -30,6 +30,8 @@ import com.gotlibsh.still.ui.HomeScreen
 import com.gotlibsh.still.ui.SettingsScreen
 import com.gotlibsh.still.ui.StillColors
 import com.gotlibsh.still.ui.StillTheme
+import com.gotlibsh.still.data.Background
+import androidx.compose.ui.graphics.Color as ComposeColor
 import com.gotlibsh.still.widgets.HomeWidget
 import com.gotlibsh.still.widgets.WidgetHost
 import com.gotlibsh.still.widgets.WidgetRegistry
@@ -76,8 +78,10 @@ class MainActivity : ComponentActivity() {
         val settings by vm.settings.collectAsStateWithLifecycle()
         val apps by vm.apps.collectAsStateWithLifecycle()
 
-        Box(Modifier.fillMaxSize().background(StillColors.background)) {
-            val s = settings
+        val s = settings
+        // Until settings load, stay black rather than flashing the wallpaper.
+        val fill = if (s == null) StillColors.background else backgroundFill(s, onHome = screen == Screen.Home)
+        Box(Modifier.fillMaxSize().background(fill)) {
             if (s != null) LauncherContent(s, apps)
         }
     }
@@ -122,6 +126,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Solid color, or a see-through dark layer over the phone's wallpaper. Off the home screen
+     * (drawer, settings, forecast) the wallpaper is dimmed at least 70% so lists stay readable.
+     */
+    private fun backgroundFill(s: LauncherSettings, onHome: Boolean): ComposeColor {
+        val bg = Background.of(s.background)
+        bg.argb?.let { return ComposeColor(it) }
+        val dim = if (onHome) s.wallpaperDim else maxOf(s.wallpaperDim, 70)
+        return ComposeColor.Black.copy(alpha = dim / 100f)
     }
 
     private fun launchSwipeApp(key: String, apps: List<AppInfo>, direction: String) {
