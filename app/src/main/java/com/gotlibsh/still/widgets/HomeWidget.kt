@@ -28,6 +28,14 @@ interface HomeWidget {
 
     @Composable
     fun Content(host: WidgetHost)
+
+    /**
+     * Optional full-screen view, opened with [WidgetHost.openDetail] (e.g. the weather forecast).
+     * Back and the home button close it.
+     */
+    @Composable
+    fun Detail(host: WidgetHost, onClose: () -> Unit) {
+    }
 }
 
 /** What a widget can see and do. Passed to every [HomeWidget.Content]. */
@@ -43,6 +51,9 @@ interface WidgetHost {
     /** Opens any intent; shows a short message instead of crashing if nothing handles it. */
     fun startIntent(intent: Intent): Boolean
     fun openSettings()
+
+    /** Opens [widget]'s full-screen [HomeWidget.Detail]. */
+    fun openDetail(widget: HomeWidget)
 
     /** Changes settings in the background, e.g. `host.editSettings { setNoteText("hi") }`. */
     fun editSettings(block: suspend SettingsRepository.() -> Unit)

@@ -33,6 +33,7 @@ import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.LauncherSettings
 import com.gotlibsh.still.data.SettingsCodec
 import com.gotlibsh.still.data.WeatherPlace
+import com.gotlibsh.still.data.allWeatherPlaces
 import com.gotlibsh.still.stillApp
 import com.gotlibsh.still.widgets.WidgetRegistry
 import com.gotlibsh.still.widgets.homecontrols.HomeControlsWidget
@@ -309,25 +310,42 @@ private fun WeatherSettings(settings: LauncherSettings, vm: LauncherViewModel) {
         }
     }
 
+    val places = settings.allWeatherPlaces
+    fun save(list: List<WeatherPlace>) = vm.edit {
+        setWeatherPlace(list.firstOrNull())
+        setExtraWeatherPlaces(list.drop(1))
+    }
+
     Column {
-        SettingRow("City", settings.weatherPlace?.name ?: "not set")
+        if (places.isEmpty()) SettingRow("City", "not set")
+        places.forEachIndexed { i, place ->
+            // Tap a city to remove it. The first city is the default one.
+            SettingRow(place.name, if (i == 0) "default · remove" else "remove") {
+                save(places.filterIndexed { j, _ -> j != i })
+            }
+        }
+        if (places.size > 1) {
+            Text(
+                "Swipe left or right on the weather line to switch cities.",
+                color = StillColors.faint, fontSize = 14.sp, modifier = Modifier.padding(bottom = 6.dp),
+            )
+        }
         StillTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = "type a city and press enter",
+            placeholder = if (places.isEmpty()) "type a city and press enter" else "add another city",
             onImeAction = ::search,
             modifier = Modifier.fillMaxWidth(),
         )
         if (status.isNotEmpty()) Text(status, color = StillColors.faint, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
         results.forEach { place ->
-            SettingRow(place.name) {
-                vm.edit { setWeatherPlace(place) }
+            SettingRow(place.name, "add") {
+                if (place !in places) save(places + place)
                 results = emptyList()
                 query = ""
             }
         }
         SettingRow("Units", if (settings.fahrenheit) "°F" else "°C") { vm.edit { setFahrenheit(!settings.fahrenheit) } }
-        if (settings.weatherPlace != null) SettingRow("Remove city") { vm.edit { setWeatherPlace(null) } }
     }
 }
 

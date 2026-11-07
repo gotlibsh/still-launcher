@@ -11,7 +11,10 @@ data class LauncherSettings(
     val use24Hour: Boolean? = null,
     /** Open the app straight away when a drawer search leaves exactly one match. */
     val autoLaunchSingleMatch: Boolean = true,
+    /** Main weather city, shown on the home screen first. */
     val weatherPlace: WeatherPlace? = null,
+    /** More cities to flip through. */
+    val extraWeatherPlaces: List<WeatherPlace> = emptyList(),
     val fahrenheit: Boolean = false,
     val noteText: String = "",
     /** A link that opens your real notes, e.g. https://..., obsidian://open?vault=..., notion://... */
@@ -30,6 +33,10 @@ data class LauncherSettings(
 }
 
 data class WeatherPlace(val name: String, val latitude: Double, val longitude: Double)
+
+/** Main city first, then the extra ones. */
+val LauncherSettings.allWeatherPlaces: List<WeatherPlace>
+    get() = listOfNotNull(weatherPlace) + extraWeatherPlaces
 
 object SettingsCodec {
     private const val SEP = "\n"

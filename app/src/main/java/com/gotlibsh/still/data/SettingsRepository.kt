@@ -22,6 +22,7 @@ class SettingsRepository(private val context: Context) {
         val clockFormat = stringPreferencesKey("clock_format") // "", "12", "24"
         val autoLaunch = booleanPreferencesKey("auto_launch")
         val weatherPlace = stringPreferencesKey("weather_place")
+        val extraWeatherPlaces = stringPreferencesKey("weather_places_extra")
         val fahrenheit = booleanPreferencesKey("fahrenheit")
         val noteText = stringPreferencesKey("note_text")
         val notesUrl = stringPreferencesKey("notes_url")
@@ -45,6 +46,7 @@ class SettingsRepository(private val context: Context) {
         },
         autoLaunchSingleMatch = this[Keys.autoLaunch] ?: true,
         weatherPlace = SettingsCodec.decodePlace(this[Keys.weatherPlace]),
+        extraWeatherPlaces = SettingsCodec.decodeList(this[Keys.extraWeatherPlaces]).mapNotNull(SettingsCodec::decodePlace),
         fahrenheit = this[Keys.fahrenheit] ?: false,
         noteText = this[Keys.noteText].orEmpty(),
         notesUrl = this[Keys.notesUrl].orEmpty(),
@@ -61,6 +63,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setUse24Hour(value: Boolean?) = put(Keys.clockFormat, when (value) { true -> "24"; false -> "12"; null -> "" })
     suspend fun setAutoLaunch(value: Boolean) = context.dataStore.edit { it[Keys.autoLaunch] = value }
     suspend fun setWeatherPlace(place: WeatherPlace?) = put(Keys.weatherPlace, SettingsCodec.encodePlace(place))
+    suspend fun setExtraWeatherPlaces(places: List<WeatherPlace>) =
+        put(Keys.extraWeatherPlaces, SettingsCodec.encodeList(places.map(SettingsCodec::encodePlace)))
     suspend fun setFahrenheit(value: Boolean) = context.dataStore.edit { it[Keys.fahrenheit] = value }
     suspend fun setNoteText(text: String) = put(Keys.noteText, text)
     suspend fun setNotesUrl(url: String) = put(Keys.notesUrl, url.trim())

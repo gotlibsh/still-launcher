@@ -30,15 +30,17 @@ import com.gotlibsh.still.ui.HomeScreen
 import com.gotlibsh.still.ui.SettingsScreen
 import com.gotlibsh.still.ui.StillColors
 import com.gotlibsh.still.ui.StillTheme
+import com.gotlibsh.still.widgets.HomeWidget
 import com.gotlibsh.still.widgets.WidgetHost
 import com.gotlibsh.still.widgets.WidgetRegistry
 
-private enum class Screen { Home, Drawer, Settings }
+private enum class Screen { Home, Drawer, Settings, Detail }
 
 class MainActivity : ComponentActivity() {
 
     private val vm: LauncherViewModel by viewModels()
     private var screen by mutableStateOf(Screen.Home)
+    private var detailWidget by mutableStateOf<HomeWidget?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,6 +114,11 @@ class MainActivity : ComponentActivity() {
                     vm = vm,
                     onClose = { screen = Screen.Home },
                 )
+                Screen.Detail -> {
+                    val close = { screen = Screen.Home }
+                    BackHandler(onBack = close)
+                    detailWidget?.Detail(host, close)
+                }
             }
         }
     }
@@ -133,6 +140,10 @@ class MainActivity : ComponentActivity() {
         override fun openAppInfo(app: AppInfo) = vm.appRepository.openAppInfo(app)
         override fun startIntent(intent: Intent) = vm.appRepository.startSafely(intent)
         override fun openSettings() { screen = Screen.Settings }
+        override fun openDetail(widget: HomeWidget) {
+            detailWidget = widget
+            screen = Screen.Detail
+        }
         override fun editSettings(block: suspend SettingsRepository.() -> Unit) = vm.edit(block)
     }
 }
