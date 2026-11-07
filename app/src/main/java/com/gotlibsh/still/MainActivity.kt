@@ -64,8 +64,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Come back to a clean home screen after using another app.
-        screen = Screen.Home
+        // Come back to a clean home screen after using another app,
+        // but not while Google Home's permission screen is covering Settings.
+        if (!vm.awayForGoogleHome) screen = Screen.Home
     }
 
     @Composable

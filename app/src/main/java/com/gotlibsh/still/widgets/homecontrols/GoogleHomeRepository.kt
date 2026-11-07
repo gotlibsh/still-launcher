@@ -88,11 +88,13 @@ class GoogleHomeRepository(private val context: Context) {
             .getOrElse { flowOf(PermissionsState.PERMISSIONS_STATE_UNAVAILABLE) }
             .catch { emit(PermissionsState.PERMISSIONS_STATE_UNAVAILABLE) }
 
-    /** Shows Google's permission screen. Returns true if access was granted. */
-    suspend fun requestAccess(): Boolean = try {
-        client.requestPermissions(ForcePermissionFlow.FORCE_LAUNCH).status == PermissionsResultStatus.SUCCESS
+    /** Shows Google's permission screen. Returns null if access was granted, otherwise why not. */
+    suspend fun requestAccess(): String? = try {
+        val result = client.requestPermissions(ForcePermissionFlow.FORCE_LAUNCH)
+        if (result.status == PermissionsResultStatus.SUCCESS) null
+        else "Google said: ${result.status}${result.errorMessage?.let { " ($it)" } ?: ""}"
     } catch (e: Exception) {
-        false
+        "Google Home error: ${e.message ?: e.javaClass.simpleName}"
     }
 
     /** All on/off-capable devices, kept up to date as they change. Empty if not connected. */

@@ -179,12 +179,11 @@ fun SettingsScreen(
 @Composable
 private fun GoogleHomeSettings(settings: LauncherSettings, vm: LauncherViewModel) {
     val repo = LocalContext.current.stillApp().googleHome
-    val scope = rememberCoroutineScope()
     val permission by remember(repo) { repo.permissionState }
         .collectAsState(initial = PermissionsState.PERMISSIONS_STATE_UNINITIALIZED)
     val connected = permission == PermissionsState.GRANTED
     var picking by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("") }
+    val status by vm.googleHomeStatus.collectAsState()
 
     Column {
         Text(
@@ -193,14 +192,9 @@ private fun GoogleHomeSettings(settings: LauncherSettings, vm: LauncherViewModel
             fontSize = 14.sp,
         )
         when (permission) {
-            PermissionsState.GRANTED -> SettingRow("Google Home", "connected · change access") {
-                scope.launch { repo.requestAccess() }
-            }
+            PermissionsState.GRANTED -> SettingRow("Google Home", "connected · change access") { vm.connectGoogleHome() }
             PermissionsState.PERMISSIONS_STATE_UNINITIALIZED -> SettingRow("Google Home", "checking…")
-            else -> SettingRow("Connect Google Home") {
-                status = "waiting for Google…"
-                scope.launch { status = if (repo.requestAccess()) "" else "Not connected. See the README for the one-time Google setup." }
-            }
+            else -> SettingRow("Connect Google Home", permission.toString().lowercase()) { vm.connectGoogleHome() }
         }
         if (status.isNotEmpty()) Text(status, color = StillColors.faint, fontSize = 14.sp)
 

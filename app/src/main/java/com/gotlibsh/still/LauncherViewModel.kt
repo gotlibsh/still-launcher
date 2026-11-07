@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.LauncherSettings
 import com.gotlibsh.still.data.SettingsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -29,6 +30,27 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun refreshApps() {
         viewModelScope.launch { still.apps.refresh() }
+    }
+
+    /** "" when idle or connected; otherwise progress or the reason connecting failed. */
+    val googleHomeStatus = MutableStateFlow("")
+
+    /** True while Google's permission screen is on top, so the launcher keeps showing Settings. */
+    @Volatile var awayForGoogleHome = false
+        private set
+
+    /** Runs Google's permission flow. Lives in viewModelScope so leaving Settings can't cancel it. */
+    fun connectGoogleHome() {
+        if (awayForGoogleHome) return
+        awayForGoogleHome = true
+        googleHomeStatus.value = "waiting for Google…"
+        viewModelScope.launch {
+            try {
+                googleHomeStatus.value = still.googleHome.requestAccess().orEmpty()
+            } finally {
+                awayForGoogleHome = false
+            }
+        }
     }
 
     fun edit(block: suspend SettingsRepository.() -> Unit) {
