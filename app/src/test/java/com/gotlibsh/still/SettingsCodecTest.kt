@@ -35,4 +35,15 @@ class SettingsCodecTest {
         assertEquals(list, SettingsCodec.move(list, "c", +1))
         assertEquals(list, SettingsCodec.move(list, "zzz", +1))
     }
+
+    @Test fun appNamesRoundTrip() {
+        val names = mapOf("com.a/com.a.Main/0" to "Mail", "com.b/com.b.Main/10" to "Cal = nice")
+        assertEquals(names, SettingsCodec.decodeNames(SettingsCodec.encodeNames(names)))
+    }
+
+    @Test fun appNamesDropLineBreaksAndBlanks() {
+        val encoded = SettingsCodec.encodeNames(mapOf("k1" to "two\nlines", "k2" to "   "))
+        assertEquals(mapOf("k1" to "two lines"), SettingsCodec.decodeNames(encoded))
+        assertEquals(emptyMap<String, String>(), SettingsCodec.decodeNames(null))
+    }
 }

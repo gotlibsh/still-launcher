@@ -105,6 +105,7 @@ class MainActivity : ComponentActivity() {
                     onClose = { screen = Screen.Home },
                     onToggleFavorite = vm::toggleFavorite,
                     onHide = vm::hide,
+                    onRename = vm::rename,
                     onAppInfo = vm.appRepository::openAppInfo,
                     onUninstall = vm.appRepository::uninstall,
                 )

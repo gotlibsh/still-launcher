@@ -26,6 +26,8 @@ data class LauncherSettings(
     val swipeRightAppKey: String = "",
     /** Google Home device ids shown as switches by the Home switches widget, in order. */
     val homeDeviceIds: List<String> = emptyList(),
+    /** Your own names for apps: [AppInfo.key] -> name. */
+    val appNames: Map<String, String> = emptyMap(),
 ) {
     companion object {
         const val MAX_FAVORITES = 8
@@ -45,6 +47,21 @@ object SettingsCodec {
 
     fun decodeList(raw: String?): List<String> =
         raw.orEmpty().split(SEP).map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** Names map as lines of "key<US>name". Names lose any line breaks. */
+    fun encodeNames(names: Map<String, String>): String =
+        encodeList(names.mapNotNull { (key, name) -> cleanName(name).takeIf { it.isNotEmpty() }?.let { "$key$US$it" } })
+
+    fun decodeNames(raw: String?): Map<String, String> =
+        decodeList(raw).mapNotNull { line ->
+            val key = line.substringBefore(US, "")
+            val name = line.substringAfter(US, "").trim()
+            if (key.isEmpty() || name.isEmpty()) null else key to name
+        }.toMap()
+
+    fun cleanName(name: String): String = name.replace(Regex("[\\r\\n$US]+"), " ").trim()
+
+    private const val US = "\u001F"
 
     fun encodePlace(place: WeatherPlace?): String =
         if (place == null) "" else "${place.latitude}|${place.longitude}|${place.name}"

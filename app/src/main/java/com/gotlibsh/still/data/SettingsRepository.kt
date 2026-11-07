@@ -30,6 +30,7 @@ class SettingsRepository(private val context: Context) {
         val swipeLeftApp = stringPreferencesKey("swipe_left_app")
         val swipeRightApp = stringPreferencesKey("swipe_right_app")
         val homeDevices = stringPreferencesKey("home_device_ids")
+        val appNames = stringPreferencesKey("app_names")
     }
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
@@ -54,6 +55,7 @@ class SettingsRepository(private val context: Context) {
         swipeLeftAppKey = this[Keys.swipeLeftApp].orEmpty(),
         swipeRightAppKey = this[Keys.swipeRightApp].orEmpty(),
         homeDeviceIds = SettingsCodec.decodeList(this[Keys.homeDevices]),
+        appNames = SettingsCodec.decodeNames(this[Keys.appNames]),
     )
 
     suspend fun setFavorites(keys: List<String>) = put(Keys.favorites, SettingsCodec.encodeList(keys.take(LauncherSettings.MAX_FAVORITES)))
@@ -72,6 +74,16 @@ class SettingsRepository(private val context: Context) {
     suspend fun setSwipeLeftApp(key: String) = put(Keys.swipeLeftApp, key)
     suspend fun setSwipeRightApp(key: String) = put(Keys.swipeRightApp, key)
     suspend fun setHomeDevices(ids: List<String>) = put(Keys.homeDevices, SettingsCodec.encodeList(ids))
+
+    /** A blank name goes back to the app's own name. */
+    suspend fun setAppName(appKey: String, name: String) {
+        context.dataStore.edit { prefs ->
+            val names = SettingsCodec.decodeNames(prefs[Keys.appNames]).toMutableMap()
+            val clean = SettingsCodec.cleanName(name)
+            if (clean.isEmpty()) names.remove(appKey) else names[appKey] = clean
+            prefs[Keys.appNames] = SettingsCodec.encodeNames(names)
+        }
+    }
 
     private suspend fun put(key: Preferences.Key<String>, value: String) {
         context.dataStore.edit { it[key] = value }

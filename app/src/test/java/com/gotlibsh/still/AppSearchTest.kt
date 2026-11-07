@@ -20,4 +20,11 @@ class AppSearchTest {
         assertEquals("Play Store", search("ps").first())
         assertEquals(listOf("Café Notes"), search("cafe"))
     }
+
+    @Test fun renamedItemsMatchEitherName() {
+        val items = listOf(listOf("Mail", "Microsoft Outlook"), listOf("Maps"))
+        assertEquals(items, AppSearch.filterAny(items, "ma") { it })
+        assertEquals(listOf(items[0]), AppSearch.filterAny(items, "outl") { it })
+        assertEquals(listOf(items[0]), AppSearch.filterAny(items, "mail") { it })
+    }
 }

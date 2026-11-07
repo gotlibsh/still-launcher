@@ -5,11 +5,17 @@ import java.text.Normalizer
 /** Search used by the app drawer: prefix matches first, then word starts, then anywhere. */
 object AppSearch {
 
-    fun <T> filter(items: List<T>, query: String, label: (T) -> String): List<T> {
+    fun <T> filter(items: List<T>, query: String, label: (T) -> String): List<T> =
+        filterAny(items, query) { listOf(label(it)) }
+
+    /** Like [filter], but an item can have several names; its best-matching name counts. */
+    fun <T> filterAny(items: List<T>, query: String, labels: (T) -> List<String>): List<T> {
         val q = normalize(query)
         if (q.isEmpty()) return items
         return items
-            .mapNotNull { item -> rank(normalize(label(item)), q)?.let { item to it } }
+            .mapNotNull { item ->
+                labels(item).mapNotNull { rank(normalize(it), q) }.minOrNull()?.let { item to it }
+            }
             .sortedBy { it.second }
             .map { it.first }
     }

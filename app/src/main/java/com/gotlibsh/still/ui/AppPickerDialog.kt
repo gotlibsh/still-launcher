@@ -34,7 +34,7 @@ fun AppPickerDialog(
     onDismiss: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    val results = remember(apps, query) { AppSearch.filter(apps, query) { it.label } }
+    val results = remember(apps, query) { AppSearch.filterAny(apps, query, AppInfo::searchLabels) }
     Dialog(onDismissRequest = onDismiss) {
         val focus = remember { FocusRequester() }
         val keyboard = LocalSoftwareKeyboardController.current

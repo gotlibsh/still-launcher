@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.LauncherSettings
 import com.gotlibsh.still.data.SettingsRepository
+import com.gotlibsh.still.data.withCustomNames
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -21,7 +23,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val settings: StateFlow<LauncherSettings?> =
         still.settings.settings.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val apps: StateFlow<List<AppInfo>> = still.apps.apps
+    /** Installed apps with your custom names applied. */
+    val apps: StateFlow<List<AppInfo>> =
+        combine(still.apps.apps, settings) { list, s -> list.withCustomNames(s?.appNames.orEmpty()) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
         still.apps.watchPackageChanges { refreshApps() }
@@ -65,6 +70,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val favs = current.favorites
         val updated = if (app.key in favs) favs - app.key else favs + app.key
         edit { setFavorites(updated) }
+    }
+
+    fun rename(app: AppInfo, name: String) {
+        // Typing the original name back counts as clearing it.
+        val value = if (name.trim() == app.originalLabel) "" else name
+        edit { setAppName(app.key, value) }
     }
 
     fun hide(app: AppInfo) {

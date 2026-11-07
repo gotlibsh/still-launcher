@@ -1,7 +1,9 @@
 package com.gotlibsh.still.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +31,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
 import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.AppSearch
 import com.gotlibsh.still.data.LauncherSettings
@@ -42,12 +46,14 @@ fun AppDrawer(
     onClose: () -> Unit,
     onToggleFavorite: (AppInfo) -> Unit,
     onHide: (AppInfo) -> Unit,
+    onRename: (AppInfo, String) -> Unit,
     onAppInfo: (AppInfo) -> Unit,
     onUninstall: (AppInfo) -> Unit,
 ) {
+    var renaming by remember { mutableStateOf<AppInfo?>(null) }
     var query by remember { mutableStateOf("") }
     val visible = remember(apps, settings.hiddenApps) { apps.filter { it.key !in settings.hiddenApps } }
-    val results = remember(visible, query) { AppSearch.filter(visible, query) { it.label } }
+    val results = remember(visible, query) { AppSearch.filterAny(visible, query, AppInfo::searchLabels) }
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
 
@@ -89,12 +95,66 @@ fun AppDrawer(
                     onLaunch = { onLaunch(app) },
                     onToggleFavorite = { onToggleFavorite(app) },
                     onHide = { onHide(app) },
+                    onRename = { renaming = app },
                     onAppInfo = { onAppInfo(app) },
                     onUninstall = { onUninstall(app) },
                 )
             }
             if (results.isEmpty()) {
                 item { Text("No apps match", color = StillColors.faint, fontSize = 16.sp) }
+            }
+        }
+    }
+
+    renaming?.let { app ->
+        RenameDialog(
+            app = app,
+            onSave = { name -> onRename(app, name); renaming = null },
+            onDismiss = { renaming = null },
+        )
+    }
+}
+
+/** Type a new name; save it empty to go back to the app's own name. */
+@Composable
+private fun RenameDialog(app: AppInfo, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf(app.label) }
+    Dialog(onDismissRequest = onDismiss) {
+        val focus = remember { FocusRequester() }
+        val keyboard = LocalSoftwareKeyboardController.current
+        LaunchedEffect(Unit) {
+            delay(100) // let the dialog window attach first
+            focus.requestFocus()
+            keyboard?.show()
+        }
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(StillColors.background)
+                .padding(24.dp),
+        ) {
+            Text("Rename", color = StillColors.dim, fontSize = 14.sp)
+            Spacer(Modifier.height(12.dp))
+            StillTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = app.originalLabel,
+                fontSize = 20,
+                onImeAction = { onSave(name) },
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+            )
+            Spacer(Modifier.height(20.dp))
+            Row(Modifier.fillMaxWidth()) {
+                if (app.isRenamed) {
+                    Text(
+                        "use \"${app.originalLabel}\"",
+                        color = StillColors.dim,
+                        fontSize = 16.sp,
+                        modifier = Modifier.quietClickable { onSave("") },
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                Text("save", color = StillColors.text, fontSize = 16.sp, modifier = Modifier.quietClickable { onSave(name) })
             }
         }
     }
@@ -108,6 +168,7 @@ private fun DrawerRow(
     onLaunch: () -> Unit,
     onToggleFavorite: () -> Unit,
     onHide: () -> Unit,
+    onRename: () -> Unit,
     onAppInfo: () -> Unit,
     onUninstall: () -> Unit,
 ) {
@@ -129,6 +190,7 @@ private fun DrawerRow(
                     onClick = { menu = false; onToggleFavorite() },
                 )
             }
+            DropdownMenuItem(text = { Text("Rename") }, onClick = { menu = false; onRename() })
             DropdownMenuItem(text = { Text("Hide") }, onClick = { menu = false; onHide() })
             DropdownMenuItem(text = { Text("App info") }, onClick = { menu = false; onAppInfo() })
             DropdownMenuItem(text = { Text("Uninstall") }, onClick = { menu = false; onUninstall() })
