@@ -3,6 +3,8 @@
 
     <!-- Only used by the weather widget (Open-Meteo, no API key, no tracking). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Tapping the clock opens the alarms screen, which requires this (normal, auto-granted) permission. -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <!-- Swipe down on home to pull down notifications. -->
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 

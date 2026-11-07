@@ -3,7 +3,7 @@ package com.gotlibsh.still.ui
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.geometry.Offset
+import kotlin.math.abs
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -26,29 +28,37 @@ import com.gotlibsh.still.widgets.WidgetHost
 
 /**
  * The home screen is just the enabled widgets stacked top to bottom.
- * Swipe up: all apps. Swipe down: notifications. Long-press empty space: settings.
+ * Swipe up: all apps. Swipe down: notifications. Swipe left / right: the apps chosen in
+ * settings. Long-press empty space: settings.
  */
 @Composable
 fun HomeScreen(
     host: WidgetHost,
     widgets: List<HomeWidget>,
     onOpenDrawer: () -> Unit,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
 ) {
     val context = LocalContext.current
     val openDrawer by rememberUpdatedState(onOpenDrawer)
     val openSettings by rememberUpdatedState(host::openSettings)
+    val swipeLeft by rememberUpdatedState(onSwipeLeft)
+    val swipeRight by rememberUpdatedState(onSwipeRight)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                var total = 0f
-                detectVerticalDragGestures(
-                    onDragStart = { total = 0f },
+                var total = Offset.Zero
+                detectDragGestures(
+                    onDragStart = { total = Offset.Zero },
                     onDragEnd = {
+                        val (x, y) = total
                         when {
-                            total < -SWIPE_PX -> openDrawer()
-                            total > SWIPE_PX -> expandNotifications(context)
+                            abs(y) >= abs(x) && y < -SWIPE_PX -> openDrawer()
+                            abs(y) >= abs(x) && y > SWIPE_PX -> expandNotifications(context)
+                            abs(x) > abs(y) && x < -SWIPE_PX -> swipeLeft()
+                            abs(x) > abs(y) && x > SWIPE_PX -> swipeRight()
                         }
                     },
                 ) { _, dragAmount -> total += dragAmount }

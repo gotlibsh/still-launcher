@@ -3,6 +3,7 @@ package com.gotlibsh.still
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -89,6 +90,8 @@ class MainActivity : ComponentActivity() {
                     host = host,
                     widgets = WidgetRegistry.visible(s),
                     onOpenDrawer = { screen = Screen.Drawer },
+                    onSwipeLeft = { launchSwipeApp(s.swipeLeftAppKey, apps, "left") },
+                    onSwipeRight = { launchSwipeApp(s.swipeRightAppKey, apps, "right") },
                 )
                 Screen.Drawer -> AppDrawer(
                     apps = apps,
@@ -107,6 +110,15 @@ class MainActivity : ComponentActivity() {
                     onClose = { screen = Screen.Home },
                 )
             }
+        }
+    }
+
+    private fun launchSwipeApp(key: String, apps: List<AppInfo>, direction: String) {
+        val app = apps.firstOrNull { it.key == key }
+        if (app != null) {
+            vm.appRepository.launch(app)
+        } else {
+            Toast.makeText(this, "Choose an app for swipe $direction in settings", Toast.LENGTH_SHORT).show()
         }
     }
 

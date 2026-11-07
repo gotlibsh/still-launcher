@@ -26,6 +26,8 @@ class SettingsRepository(private val context: Context) {
         val noteText = stringPreferencesKey("note_text")
         val notesUrl = stringPreferencesKey("notes_url")
         val notesApp = stringPreferencesKey("notes_app")
+        val swipeLeftApp = stringPreferencesKey("swipe_left_app")
+        val swipeRightApp = stringPreferencesKey("swipe_right_app")
     }
 
     val settings: Flow<LauncherSettings> = context.dataStore.data.map { it.toSettings() }
@@ -46,6 +48,8 @@ class SettingsRepository(private val context: Context) {
         noteText = this[Keys.noteText].orEmpty(),
         notesUrl = this[Keys.notesUrl].orEmpty(),
         notesAppKey = this[Keys.notesApp].orEmpty(),
+        swipeLeftAppKey = this[Keys.swipeLeftApp].orEmpty(),
+        swipeRightAppKey = this[Keys.swipeRightApp].orEmpty(),
     )
 
     suspend fun setFavorites(keys: List<String>) = put(Keys.favorites, SettingsCodec.encodeList(keys.take(LauncherSettings.MAX_FAVORITES)))
@@ -59,6 +63,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setNoteText(text: String) = put(Keys.noteText, text)
     suspend fun setNotesUrl(url: String) = put(Keys.notesUrl, url.trim())
     suspend fun setNotesApp(key: String) = put(Keys.notesApp, key)
+    suspend fun setSwipeLeftApp(key: String) = put(Keys.swipeLeftApp, key)
+    suspend fun setSwipeRightApp(key: String) = put(Keys.swipeRightApp, key)
 
     private suspend fun put(key: Preferences.Key<String>, value: String) {
         context.dataStore.edit { it[key] = value }

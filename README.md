@@ -18,6 +18,7 @@ Top to bottom (you can reorder or switch each one off in settings):
 
 - **Swipe up**: all apps, with the keyboard already open for search. If only one app matches, it opens right away (you can turn that off).
 - **Swipe down**: pull down notifications.
+- **Swipe left / right**: open the apps you chose in settings (e.g. camera and phone).
 - **Long-press empty space**: settings.
 - **Long-press an app** (in the list or on home): add/remove from home, hide, app info, uninstall.
 - **Home button**: always brings you back to a clean home screen.

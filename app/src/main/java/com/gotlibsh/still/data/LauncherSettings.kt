@@ -18,6 +18,9 @@ data class LauncherSettings(
     val notesUrl: String = "",
     /** Or an app to open for notes (an [AppInfo.key]). Takes priority over [notesUrl]. */
     val notesAppKey: String = "",
+    /** Apps opened by swiping left / right on the home screen ([AppInfo.key], empty = none). */
+    val swipeLeftAppKey: String = "",
+    val swipeRightAppKey: String = "",
 ) {
     companion object {
         const val MAX_FAVORITES = 8

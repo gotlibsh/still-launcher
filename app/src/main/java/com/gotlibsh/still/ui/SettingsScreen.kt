@@ -37,7 +37,7 @@ import com.gotlibsh.still.stillApp
 import com.gotlibsh.still.widgets.WidgetRegistry
 import kotlinx.coroutines.launch
 
-private enum class Picker { Favorite, NotesApp }
+private enum class Picker { Favorite, NotesApp, SwipeLeft, SwipeRight }
 
 @Composable
 fun SettingsScreen(
@@ -101,6 +101,11 @@ fun SettingsScreen(
         item { Section("Notes link") }
         item { NotesSettings(settings, appsByKey, vm, onPickApp = { picker = Picker.NotesApp }) }
 
+        // Gestures
+        item { Section("Swipe gestures") }
+        item { SwipeSetting("Swipe left opens", settings.swipeLeftAppKey, appsByKey, onPick = { picker = Picker.SwipeLeft }, onClear = { vm.edit { setSwipeLeftApp("") } }) }
+        item { SwipeSetting("Swipe right opens", settings.swipeRightAppKey, appsByKey, onPick = { picker = Picker.SwipeRight }, onClear = { vm.edit { setSwipeRightApp("") } }) }
+
         // Clock & drawer
         item { Section("Behaviour") }
         item {
@@ -144,7 +149,41 @@ fun SettingsScreen(
             onPick = { app -> picker = null; vm.edit { setNotesApp(app.key) } },
             onDismiss = { picker = null },
         )
+        Picker.SwipeLeft -> AppPickerDialog(
+            title = "Swipe left opens",
+            apps = apps,
+            onPick = { app -> picker = null; vm.edit { setSwipeLeftApp(app.key) } },
+            onDismiss = { picker = null },
+        )
+        Picker.SwipeRight -> AppPickerDialog(
+            title = "Swipe right opens",
+            apps = apps,
+            onPick = { app -> picker = null; vm.edit { setSwipeRightApp(app.key) } },
+            onDismiss = { picker = null },
+        )
         null -> Unit
+    }
+}
+
+@Composable
+private fun SwipeSetting(
+    label: String,
+    appKey: String,
+    appsByKey: Map<String, AppInfo>,
+    onPick: () -> Unit,
+    onClear: () -> Unit,
+) {
+    val appLabel = appKey.takeIf { it.isNotBlank() }?.let { appsByKey[it]?.label ?: "(not installed)" }
+    Column {
+        SettingRow(label, appLabel ?: "choose", onClick = onPick)
+        if (appLabel != null) {
+            Text(
+                "clear",
+                color = StillColors.faint,
+                fontSize = 14.sp,
+                modifier = Modifier.quietClickable(onClick = onClear).padding(bottom = 8.dp),
+            )
+        }
     }
 }
 
