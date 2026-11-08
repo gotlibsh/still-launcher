@@ -39,6 +39,11 @@ import com.gotlibsh.still.stillApp
 import com.gotlibsh.still.widgets.WidgetRegistry
 import com.gotlibsh.still.widgets.homecontrols.HomeControlsWidget
 import com.gotlibsh.still.widgets.homecontrols.HomeSwitch
+import com.gotlibsh.still.widgets.homecontrols.SwitchIcon
+import com.gotlibsh.still.widgets.homecontrols.SwitchIcons
+import com.gotlibsh.still.widgets.homecontrols.SwitchLabels
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import com.google.home.PermissionsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -230,17 +235,27 @@ private fun GoogleHomeSettings(settings: LauncherSettings, vm: LauncherViewModel
                     onUp = { vm.edit { setHomeDevices(SettingsCodec.move(ids, id, -1)) } },
                     onDown = { vm.edit { setHomeDevices(SettingsCodec.move(ids, id, +1)) } },
                 )
-                // Short name shown on the home screen; empty = initials.
+                // Icon (tap to change) and short word shown on the home screen; empty = automatic.
+                val device = switches.firstOrNull { it.id == id }
+                val icon = HomeControlsWidget.iconFor(id, device, settings.homeDeviceIcons)
                 var label by remember(id) { mutableStateOf(settings.homeDeviceLabels[id].orEmpty()) }
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
-                    Text("short name ", color = StillColors.faint, fontSize = 14.sp)
+                    Icon(
+                        SwitchIcons.vector(icon),
+                        contentDescription = "icon: ${icon.title}, tap to change",
+                        tint = StillColors.text,
+                        modifier = Modifier
+                            .quietClickable { vm.edit { setHomeDeviceIcon(id, SwitchIcon.next(icon).id) } }
+                            .padding(end = 12.dp)
+                            .size(22.dp),
+                    )
                     StillTextField(
                         value = label,
                         onValueChange = { v ->
                             label = v.take(6)
                             vm.edit { setHomeDeviceLabel(id, label) }
                         },
-                        placeholder = name?.let(SettingsCodec::initials) ?: "?",
+                        placeholder = name?.let(SwitchLabels::word) ?: "?",
                         fontSize = 14,
                         modifier = Modifier.width(120.dp),
                     )

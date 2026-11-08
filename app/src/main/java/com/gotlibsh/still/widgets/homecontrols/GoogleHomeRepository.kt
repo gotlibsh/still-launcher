@@ -59,6 +59,8 @@ data class HomeSwitch(
     /** null when Google Home doesn't know the current state. */
     val isOn: Boolean?,
     val online: Boolean,
+    /** Google Home device type class names, e.g. "RoomAirConditionerDevice" (for the icon). */
+    val typeNames: List<String> = emptyList(),
 )
 
 /**
@@ -142,6 +144,7 @@ class GoogleHomeRepository(private val context: Context) {
             name = device.name,
             isOn = onOff.onOff,
             online = device.sourceConnectivity.connectivityState != ConnectivityState.OFFLINE,
+            typeNames = types.mapNotNull { it::class.simpleName },
         )
     }
 

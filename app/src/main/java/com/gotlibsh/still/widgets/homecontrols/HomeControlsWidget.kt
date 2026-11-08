@@ -3,7 +3,15 @@ package com.gotlibsh.still.widgets.homecontrols
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -16,7 +24,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.home.PermissionsState
-import com.gotlibsh.still.data.SettingsCodec
 import com.gotlibsh.still.stillApp
 import com.gotlibsh.still.ui.StillColors
 import com.gotlibsh.still.ui.quietClickable
@@ -25,15 +32,16 @@ import com.gotlibsh.still.widgets.WidgetHost
 import kotlinx.coroutines.launch
 
 /**
- * A few Google Home devices as short text switches, up to four per row: "ALR ●  B ○"
- * (● on, ○ off, × offline). Tap one to flip it. Pick devices and short names in
- * Settings > Google Home; the default short name is the device's initials.
+ * A few Google Home devices as small switches, up to four per row: a line icon plus a short
+ * word, e.g. "❄ living  ❄ bedroom  🔥 boiler" (drawn as theme-colored icons, not emoji).
+ * Bright = on, faint = off. Pick devices, words and icons in Settings > Google Home.
  */
 object HomeControlsWidget : HomeWidget {
     override val id = "home_controls"
     override val title = "Google Home switches"
     override val enabledByDefault = false
 
+    @OptIn(ExperimentalLayoutApi::class)
     @Composable
     override fun Content(host: WidgetHost) {
         val ids = host.settings.homeDeviceIds
@@ -57,45 +65,56 @@ object HomeControlsWidget : HomeWidget {
         val pending = remember { mutableStateMapOf<String, Boolean>() }
         val scope = rememberCoroutineScope()
 
-        // Up to four short switches per row, e.g. "ALR ●   AB ○   B ●". Tap flips one.
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            ids.chunked(PER_ROW).forEach { rowIds ->
-                Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
-                    rowIds.forEach { id ->
-                        val device = switches?.firstOrNull { it.id == id }
-                        val wanted = pending[id]
-                        val mark = when {
-                            switches == null -> "…"
-                            device == null -> "?"
-                            !device.online -> "×"
-                            wanted != null -> "…"
-                            device.isOn == true -> "●"
-                            device.isOn == false -> "○"
-                            else -> "?"
+        // Icon + short word per switch, up to four per row. Bright = on, faint = off,
+        // crossed out = offline. Tap one to flip it.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(22.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            maxItemsInEachRow = PER_ROW,
+        ) {
+            ids.forEach { id ->
+                val device = switches?.firstOrNull { it.id == id }
+                val wanted = pending[id]
+                val online = device?.online == true
+                val isOn = online && (wanted ?: device?.isOn) == true
+                val color = when {
+                    wanted != null -> StillColors.dim
+                    isOn -> StillColors.text
+                    else -> StillColors.faint
+                }
+                val name = device?.name.orEmpty()
+                val icon = iconFor(id, device, host.settings.homeDeviceIcons)
+                val word = host.settings.homeDeviceLabels[id]
+                    ?: if (device == null) (if (switches == null) "…" else "missing") else SwitchLabels.word(name)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.quietClickable(onLongClick = host::openSettings) {
+                        if (device == null || !device.online || wanted != null) return@quietClickable
+                        val target = device.isOn != true
+                        pending[id] = target
+                        scope.launch {
+                            val ok = repo.setOn(id, target)
+                            pending.remove(id)
+                            if (!ok) Toast.makeText(context, "Couldn't switch ${device.name}", Toast.LENGTH_SHORT).show()
                         }
-                        val isOn = (wanted ?: device?.isOn) == true && device?.online == true
-                        val label = host.settings.homeDeviceLabels[id]
-                            ?: device?.name?.let(SettingsCodec::initials) ?: "?"
-                        Text(
-                            "$label $mark",
-                            fontSize = 18.sp,
-                            color = if (isOn) StillColors.text else StillColors.faint,
-                            modifier = Modifier.quietClickable(onLongClick = host::openSettings) {
-                                if (device == null || !device.online || wanted != null) return@quietClickable
-                                val target = device.isOn != true
-                                pending[id] = target
-                                scope.launch {
-                                    val ok = repo.setOn(id, target)
-                                    pending.remove(id)
-                                    if (!ok) Toast.makeText(context, "Couldn't switch ${device.name}", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                        )
-                    }
+                    },
+                ) {
+                    Icon(SwitchIcons.vector(icon), contentDescription = name, tint = color, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        word,
+                        fontSize = 17.sp,
+                        color = color,
+                        textDecoration = if (device != null && !online) TextDecoration.LineThrough else null,
+                    )
                 }
             }
         }
     }
+
+    /** Hand-picked icon if set, otherwise guessed from the device's name and type. */
+    fun iconFor(id: String, device: HomeSwitch?, overrides: Map<String, String>): SwitchIcon =
+        SwitchIcon.of(overrides[id]) ?: SwitchLabels.icon(device?.name.orEmpty(), device?.typeNames.orEmpty())
 
     private const val PER_ROW = 4
 

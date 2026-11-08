@@ -33,6 +33,7 @@ class SettingsRepository(private val context: Context) {
         val homeDevices = stringPreferencesKey("home_device_ids")
         val appNames = stringPreferencesKey("app_names")
         val homeDeviceLabels = stringPreferencesKey("home_device_labels")
+        val homeDeviceIcons = stringPreferencesKey("home_device_icons")
         val background = stringPreferencesKey("background")
         val wallpaperDim = intPreferencesKey("wallpaper_dim")
     }
@@ -61,6 +62,7 @@ class SettingsRepository(private val context: Context) {
         homeDeviceIds = SettingsCodec.decodeList(this[Keys.homeDevices]),
         appNames = SettingsCodec.decodeNames(this[Keys.appNames]),
         homeDeviceLabels = SettingsCodec.decodeNames(this[Keys.homeDeviceLabels]),
+        homeDeviceIcons = SettingsCodec.decodeNames(this[Keys.homeDeviceIcons]),
         background = Background.of(this[Keys.background]).id,
         wallpaperDim = (this[Keys.wallpaperDim] ?: 40).coerceIn(0, 80),
     )
@@ -85,7 +87,15 @@ class SettingsRepository(private val context: Context) {
     suspend fun setBackground(background: Background) = put(Keys.background, background.id)
     suspend fun setWallpaperDim(percent: Int) = context.dataStore.edit { it[Keys.wallpaperDim] = percent.coerceIn(0, 80) }
 
-    /** A blank label goes back to the device's initials. */
+    suspend fun setHomeDeviceIcon(deviceId: String, iconId: String) {
+        context.dataStore.edit { prefs ->
+            val icons = SettingsCodec.decodeNames(prefs[Keys.homeDeviceIcons]).toMutableMap()
+            icons[deviceId] = iconId
+            prefs[Keys.homeDeviceIcons] = SettingsCodec.encodeNames(icons)
+        }
+    }
+
+    /** A blank label goes back to the automatic short word. */
     suspend fun setHomeDeviceLabel(deviceId: String, label: String) {
         context.dataStore.edit { prefs ->
             val labels = SettingsCodec.decodeNames(prefs[Keys.homeDeviceLabels]).toMutableMap()

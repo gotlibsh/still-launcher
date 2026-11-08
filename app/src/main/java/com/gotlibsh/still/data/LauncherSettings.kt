@@ -30,6 +30,8 @@ data class LauncherSettings(
     val appNames: Map<String, String> = emptyMap(),
     /** Short names for Google Home switches: device id -> e.g. "LR". Missing = initials. */
     val homeDeviceLabels: Map<String, String> = emptyMap(),
+    /** Icon picked by hand for a switch: device id -> SwitchIcon id. Missing = automatic. */
+    val homeDeviceIcons: Map<String, String> = emptyMap(),
     /** A [Background] id. */
     val background: String = Background.DEFAULT.id,
     /** How much to darken the phone's wallpaper, 0-80 (percent). */
