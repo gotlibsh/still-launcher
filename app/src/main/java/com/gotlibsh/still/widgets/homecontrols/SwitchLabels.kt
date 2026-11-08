@@ -48,7 +48,7 @@ object SwitchLabels {
         "Fan" to SwitchIcon.AIR,
         "Purifier" to SwitchIcon.AIR,
         "Ventilator" to SwitchIcon.AIR,
-        "PlugIn" to SwitchIcon.PLUG,
+        "Plugin" to SwitchIcon.PLUG,
     )
 
     private fun words(name: String): List<String> =
@@ -57,7 +57,7 @@ object SwitchLabels {
     fun icon(name: String, typeNames: Collection<String> = emptyList()): SwitchIcon {
         val w = words(name)
         KEYWORDS.firstOrNull { (_, keys) -> w.any { it in keys } }?.let { return it.first }
-        TYPE_HINTS.firstOrNull { (hint, _) -> typeNames.any { it.contains(hint) } }?.let { return it.second }
+        TYPE_HINTS.firstOrNull { (hint, _) -> typeNames.any { it.contains(hint, ignoreCase = true) } }?.let { return it.second }
         return SwitchIcon.POWER
     }
 
