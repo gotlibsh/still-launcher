@@ -4,8 +4,6 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -18,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.home.PermissionsState
+import com.gotlibsh.still.data.SettingsCodec
 import com.gotlibsh.still.stillApp
 import com.gotlibsh.still.ui.StillColors
 import com.gotlibsh.still.ui.quietClickable
@@ -26,8 +25,9 @@ import com.gotlibsh.still.widgets.WidgetHost
 import kotlinx.coroutines.launch
 
 /**
- * A few Google Home devices as plain text switches, e.g. "Living room AC   off".
- * Tap a line to flip it. Pick the devices in Settings > Google Home.
+ * A few Google Home devices as short text switches, up to four per row: "ALR ●  B ○"
+ * (● on, ○ off, × offline). Tap one to flip it. Pick devices and short names in
+ * Settings > Google Home; the default short name is the device's initials.
  */
 object HomeControlsWidget : HomeWidget {
     override val id = "home_controls"
@@ -57,39 +57,47 @@ object HomeControlsWidget : HomeWidget {
         val pending = remember { mutableStateMapOf<String, Boolean>() }
         val scope = rememberCoroutineScope()
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ids.forEach { id ->
-                val device = switches?.firstOrNull { it.id == id }
-                val wanted = pending[id]
-                val state = when {
-                    switches == null -> "…"
-                    device == null -> "missing"
-                    !device.online -> "offline"
-                    wanted != null -> if (wanted) "on…" else "off…"
-                    device.isOn == true -> "on"
-                    device.isOn == false -> "off"
-                    else -> "?"
-                }
-                val isOn = (wanted ?: device?.isOn) == true
-                Row(
-                    modifier = Modifier.quietClickable(onLongClick = host::openSettings) {
-                        if (device == null || !device.online || wanted != null) return@quietClickable
-                        val target = device.isOn != true
-                        pending[id] = target
-                        scope.launch {
-                            val ok = repo.setOn(id, target)
-                            pending.remove(id)
-                            if (!ok) Toast.makeText(context, "Couldn't switch ${device.name}", Toast.LENGTH_SHORT).show()
+        // Up to four short switches per row, e.g. "ALR ●   AB ○   B ●". Tap flips one.
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ids.chunked(PER_ROW).forEach { rowIds ->
+                Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                    rowIds.forEach { id ->
+                        val device = switches?.firstOrNull { it.id == id }
+                        val wanted = pending[id]
+                        val mark = when {
+                            switches == null -> "…"
+                            device == null -> "?"
+                            !device.online -> "×"
+                            wanted != null -> "…"
+                            device.isOn == true -> "●"
+                            device.isOn == false -> "○"
+                            else -> "?"
                         }
-                    },
-                ) {
-                    Text(device?.name ?: "Device", fontSize = 18.sp, color = StillColors.text)
-                    Spacer(Modifier.width(12.dp))
-                    Text(state, fontSize = 18.sp, color = if (isOn) StillColors.text else StillColors.faint)
+                        val isOn = (wanted ?: device?.isOn) == true && device?.online == true
+                        val label = host.settings.homeDeviceLabels[id]
+                            ?: device?.name?.let(SettingsCodec::initials) ?: "?"
+                        Text(
+                            "$label $mark",
+                            fontSize = 18.sp,
+                            color = if (isOn) StillColors.text else StillColors.faint,
+                            modifier = Modifier.quietClickable(onLongClick = host::openSettings) {
+                                if (device == null || !device.online || wanted != null) return@quietClickable
+                                val target = device.isOn != true
+                                pending[id] = target
+                                scope.launch {
+                                    val ok = repo.setOn(id, target)
+                                    pending.remove(id)
+                                    if (!ok) Toast.makeText(context, "Couldn't switch ${device.name}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
     }
+
+    private const val PER_ROW = 4
 
     @Composable
     private fun Dim(text: String, modifier: Modifier = Modifier) =

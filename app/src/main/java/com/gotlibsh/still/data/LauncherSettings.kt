@@ -28,6 +28,8 @@ data class LauncherSettings(
     val homeDeviceIds: List<String> = emptyList(),
     /** Your own names for apps: [AppInfo.key] -> name. */
     val appNames: Map<String, String> = emptyMap(),
+    /** Short names for Google Home switches: device id -> e.g. "LR". Missing = initials. */
+    val homeDeviceLabels: Map<String, String> = emptyMap(),
     /** A [Background] id. */
     val background: String = Background.DEFAULT.id,
     /** How much to darken the phone's wallpaper, 0-80 (percent). */
@@ -88,6 +90,11 @@ object SettingsCodec {
     fun cleanName(name: String): String = name.replace(Regex("[\\r\\n$US]+"), " ").trim()
 
     private const val US = "\u001F"
+
+    /** "AC Living Room" -> "ALR", "Boiler" -> "B": first letters of the words, at most 3. */
+    fun initials(name: String): String =
+        name.split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() }
+            .joinToString("") { it.take(1).uppercase() }.take(3).ifEmpty { "?" }
 
     fun encodePlace(place: WeatherPlace?): String =
         if (place == null) "" else "${place.latitude}|${place.longitude}|${place.name}"

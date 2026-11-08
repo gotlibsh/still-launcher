@@ -46,4 +46,12 @@ class SettingsCodecTest {
         assertEquals(mapOf("k1" to "two lines"), SettingsCodec.decodeNames(encoded))
         assertEquals(emptyMap<String, String>(), SettingsCodec.decodeNames(null))
     }
+
+    @Test fun initialsForShortSwitchNames() {
+        assertEquals("ALR", SettingsCodec.initials("AC Living Room"))
+        assertEquals("AB", SettingsCodec.initials("AC Bedroom"))
+        assertEquals("B", SettingsCodec.initials("Boiler"))
+        assertEquals("KLD", SettingsCodec.initials("kitchen-light, desk lamp"))
+        assertEquals("?", SettingsCodec.initials("  "))
+    }
 }

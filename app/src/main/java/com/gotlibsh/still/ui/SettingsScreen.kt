@@ -222,13 +222,29 @@ private fun GoogleHomeSettings(settings: LauncherSettings, vm: LauncherViewModel
             val switches by remember(repo) { repo.switches() }.collectAsState(initial = emptyList())
             val ids = settings.homeDeviceIds
             ids.forEach { id ->
+                val name = switches.firstOrNull { it.id == id }?.name
                 OrderRow(
-                    label = switches.firstOrNull { it.id == id }?.name ?: "(device not found)",
+                    label = name ?: "(device not found)",
                     trailing = "remove",
                     onClick = { vm.edit { setHomeDevices(ids - id) } },
                     onUp = { vm.edit { setHomeDevices(SettingsCodec.move(ids, id, -1)) } },
                     onDown = { vm.edit { setHomeDevices(SettingsCodec.move(ids, id, +1)) } },
                 )
+                // Short name shown on the home screen; empty = initials.
+                var label by remember(id) { mutableStateOf(settings.homeDeviceLabels[id].orEmpty()) }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
+                    Text("short name ", color = StillColors.faint, fontSize = 14.sp)
+                    StillTextField(
+                        value = label,
+                        onValueChange = { v ->
+                            label = v.take(6)
+                            vm.edit { setHomeDeviceLabel(id, label) }
+                        },
+                        placeholder = name?.let(SettingsCodec::initials) ?: "?",
+                        fontSize = 14,
+                        modifier = Modifier.width(120.dp),
+                    )
+                }
             }
             SettingRow("+ add device") { picking = true }
             if (picking) {

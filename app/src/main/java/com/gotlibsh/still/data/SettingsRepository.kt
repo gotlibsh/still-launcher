@@ -32,6 +32,7 @@ class SettingsRepository(private val context: Context) {
         val swipeRightApp = stringPreferencesKey("swipe_right_app")
         val homeDevices = stringPreferencesKey("home_device_ids")
         val appNames = stringPreferencesKey("app_names")
+        val homeDeviceLabels = stringPreferencesKey("home_device_labels")
         val background = stringPreferencesKey("background")
         val wallpaperDim = intPreferencesKey("wallpaper_dim")
     }
@@ -59,6 +60,7 @@ class SettingsRepository(private val context: Context) {
         swipeRightAppKey = this[Keys.swipeRightApp].orEmpty(),
         homeDeviceIds = SettingsCodec.decodeList(this[Keys.homeDevices]),
         appNames = SettingsCodec.decodeNames(this[Keys.appNames]),
+        homeDeviceLabels = SettingsCodec.decodeNames(this[Keys.homeDeviceLabels]),
         background = Background.of(this[Keys.background]).id,
         wallpaperDim = (this[Keys.wallpaperDim] ?: 40).coerceIn(0, 80),
     )
@@ -82,6 +84,16 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setBackground(background: Background) = put(Keys.background, background.id)
     suspend fun setWallpaperDim(percent: Int) = context.dataStore.edit { it[Keys.wallpaperDim] = percent.coerceIn(0, 80) }
+
+    /** A blank label goes back to the device's initials. */
+    suspend fun setHomeDeviceLabel(deviceId: String, label: String) {
+        context.dataStore.edit { prefs ->
+            val labels = SettingsCodec.decodeNames(prefs[Keys.homeDeviceLabels]).toMutableMap()
+            val clean = SettingsCodec.cleanName(label)
+            if (clean.isEmpty()) labels.remove(deviceId) else labels[deviceId] = clean
+            prefs[Keys.homeDeviceLabels] = SettingsCodec.encodeNames(labels)
+        }
+    }
 
     /** A blank name goes back to the app's own name. */
     suspend fun setAppName(appKey: String, name: String) {
