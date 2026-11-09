@@ -15,7 +15,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,7 +67,12 @@ object HomeControlsWidget : HomeWidget {
             }
         }
 
-        val switches by remember(repo) { repo.switches() }.collectAsState(initial = null)
+        // Google Home doesn't always push changes made elsewhere (its app, schedules), so read
+        // the devices again every time the home screen comes back and after each tap.
+        var refresh by remember { mutableIntStateOf(0) }
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refresh++ }
+        var switches by remember { mutableStateOf<List<HomeSwitch>?>(null) }
+        LaunchedEffect(repo, refresh) { repo.switches().collect { switches = it } }
         val pending = remember { mutableStateMapOf<String, Boolean>() }
         val scope = rememberCoroutineScope()
 
@@ -95,6 +106,7 @@ object HomeControlsWidget : HomeWidget {
                         scope.launch {
                             val ok = repo.setOn(id, target)
                             pending.remove(id)
+                            refresh++
                             if (!ok) Toast.makeText(context, "Couldn't switch ${device.name}", Toast.LENGTH_SHORT).show()
                         }
                     },
