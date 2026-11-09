@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.LauncherSettings
 import com.gotlibsh.still.data.SettingsRepository
+import com.gotlibsh.still.data.WhatsApp
 import com.gotlibsh.still.ui.AppDrawer
 import com.gotlibsh.still.ui.HomeScreen
 import com.gotlibsh.still.ui.SettingsScreen
@@ -69,8 +70,13 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         // Come back to a clean home screen after using another app,
-        // but not while Google Home's permission screen is covering Settings.
-        if (!vm.awayForGoogleHome) screen = Screen.Home
+        // but not while Google Home's permission screen or a picker (contacts) is covering
+        // Settings and will hand a result back to it.
+        if (vm.awayForGoogleHome || vm.awayForPicker) {
+            vm.awayForPicker = false
+            return
+        }
+        screen = Screen.Home
     }
 
     @Composable
@@ -101,6 +107,7 @@ class MainActivity : ComponentActivity() {
                     onOpenDrawer = { screen = Screen.Drawer },
                     onSwipeLeft = { launchSwipeApp(s.swipeLeftAppKey, apps, "left") },
                     onSwipeRight = { launchSwipeApp(s.swipeRightAppKey, apps, "right") },
+                    onTripleTap = { openTripleTapChat(s) },
                 )
                 Screen.Drawer -> AppDrawer(
                     apps = apps,
@@ -137,6 +144,15 @@ class MainActivity : ComponentActivity() {
         bg.argb?.let { return ComposeColor(it) }
         val dim = if (onHome) s.wallpaperDim else maxOf(s.wallpaperDim, 70)
         return ComposeColor.Black.copy(alpha = dim / 100f)
+    }
+
+    private fun openTripleTapChat(s: LauncherSettings) {
+        when {
+            s.tripleTapPhone.isBlank() ->
+                Toast.makeText(this, "Choose a WhatsApp contact for triple tap in settings", Toast.LENGTH_SHORT).show()
+            !WhatsApp.openChat(this, s.tripleTapPhone) ->
+                Toast.makeText(this, "WhatsApp isn't installed", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun launchSwipeApp(key: String, apps: List<AppInfo>, direction: String) {

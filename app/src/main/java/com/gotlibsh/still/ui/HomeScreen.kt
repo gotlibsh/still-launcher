@@ -29,7 +29,7 @@ import com.gotlibsh.still.widgets.WidgetHost
 /**
  * The home screen is just the enabled widgets stacked top to bottom.
  * Swipe up: all apps. Swipe down: notifications. Swipe left / right: the apps chosen in
- * settings. Long-press empty space: settings.
+ * settings. Long-press empty space: settings. Triple tap empty space: a WhatsApp chat.
  */
 @Composable
 fun HomeScreen(
@@ -38,12 +38,14 @@ fun HomeScreen(
     onOpenDrawer: () -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
+    onTripleTap: () -> Unit,
 ) {
     val context = LocalContext.current
     val openDrawer by rememberUpdatedState(onOpenDrawer)
     val openSettings by rememberUpdatedState(host::openSettings)
     val swipeLeft by rememberUpdatedState(onSwipeLeft)
     val swipeRight by rememberUpdatedState(onSwipeRight)
+    val tripleTap by rememberUpdatedState(onTripleTap)
 
     Column(
         modifier = Modifier
@@ -63,7 +65,23 @@ fun HomeScreen(
                     },
                 ) { _, dragAmount -> total += dragAmount }
             }
-            .pointerInput(Unit) { detectTapGestures(onLongPress = { openSettings() }) }
+            .pointerInput(Unit) {
+                // Taps on widgets are theirs; only taps on empty space count here.
+                var taps = 0
+                var lastTap = 0L
+                detectTapGestures(
+                    onLongPress = { openSettings() },
+                    onTap = {
+                        val now = System.currentTimeMillis()
+                        taps = if (now - lastTap < TAP_GAP_MS) taps + 1 else 1
+                        lastTap = now
+                        if (taps == 3) {
+                            taps = 0
+                            tripleTap()
+                        }
+                    },
+                )
+            }
             .systemBarsPadding()
             .padding(horizontal = 32.dp, vertical = 28.dp),
     ) {
@@ -85,6 +103,7 @@ fun HomeScreen(
 }
 
 private const val SWIPE_PX = 120f
+private const val TAP_GAP_MS = 450L
 
 /** Pulls down the notification shade. Uses a hidden API, so it fails silently if blocked. */
 @SuppressLint("WrongConstant")

@@ -44,6 +44,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     @Volatile var awayForGoogleHome = false
         private set
 
+    /** True while a system picker (e.g. contacts) opened from Settings is on top. */
+    @Volatile var awayForPicker = false
+
     /** Runs Google's permission flow. Lives in viewModelScope so leaving Settings can't cancel it. */
     fun connectGoogleHome() {
         if (awayForGoogleHome) return

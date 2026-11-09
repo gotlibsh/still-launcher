@@ -32,6 +32,9 @@ data class LauncherSettings(
     val homeDeviceLabels: Map<String, String> = emptyMap(),
     /** Icon picked by hand for a switch: device id -> SwitchIcon id. Missing = automatic. */
     val homeDeviceIcons: Map<String, String> = emptyMap(),
+    /** Triple tap on empty home space opens a WhatsApp chat with this number (digits only). */
+    val tripleTapPhone: String = "",
+    val tripleTapName: String = "",
     /** A [Background] id. */
     val background: String = Background.DEFAULT.id,
     /** How much to darken the phone's wallpaper, 0-80 (percent). */

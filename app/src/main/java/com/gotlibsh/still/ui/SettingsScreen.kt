@@ -1,7 +1,12 @@
 package com.gotlibsh.still.ui
 
 import android.content.Intent
+import android.provider.ContactsContract
 import android.provider.Settings
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.gotlibsh.still.data.WhatsApp
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -138,9 +143,10 @@ fun SettingsScreen(
         item { GoogleHomeSettings(settings, vm) }
 
         // Gestures
-        item { Section("Swipe gestures") }
+        item { Section("Gestures") }
         item { SwipeSetting("Swipe left opens", settings.swipeLeftAppKey, appsByKey, onPick = { picker = Picker.SwipeLeft }, onClear = { vm.edit { setSwipeLeftApp("") } }) }
         item { SwipeSetting("Swipe right opens", settings.swipeRightAppKey, appsByKey, onPick = { picker = Picker.SwipeRight }, onClear = { vm.edit { setSwipeRightApp("") } }) }
+        item { TripleTapSetting(settings, vm) }
 
         // Clock & drawer
         item { Section("Behaviour") }
@@ -318,6 +324,53 @@ private fun HomeDevicePickerDialog(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Triple tap on empty home space opens a WhatsApp chat with one contact. */
+@Composable
+private fun TripleTapSetting(settings: LauncherSettings, vm: LauncherViewModel) {
+    val context = LocalContext.current
+    // Android's own phone picker: it shares only the one number you pick, no contacts permission.
+    val pickPhone = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        vm.awayForPicker = false
+        val uri = result.data?.data ?: return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.query(
+                uri,
+                arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME),
+                null, null, null,
+            )?.use { c ->
+                if (c.moveToFirst()) {
+                    val number = c.getString(0).orEmpty()
+                    val name = c.getString(1).orEmpty()
+                    val digits = WhatsApp.digits(WhatsApp.toInternational(context, number))
+                    if (digits.isNotEmpty()) vm.edit { setTripleTapContact(name.ifBlank { number }, digits) }
+                }
+            }
+        }.onFailure { Toast.makeText(context, "Couldn't read that contact", Toast.LENGTH_SHORT).show() }
+    }
+    val chosen = settings.tripleTapPhone.isNotBlank()
+    Column {
+        SettingRow(
+            "Triple tap opens WhatsApp chat with",
+            if (chosen) settings.tripleTapName.ifBlank { "+" + settings.tripleTapPhone } else "choose",
+        ) {
+            val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+            vm.awayForPicker = true
+            runCatching { pickPhone.launch(intent) }
+                .onFailure {
+                    vm.awayForPicker = false
+                    Toast.makeText(context, "No contacts app found", Toast.LENGTH_SHORT).show() }
+        }
+        if (chosen) {
+            Text(
+                "+${settings.tripleTapPhone} · clear",
+                color = StillColors.faint,
+                fontSize = 14.sp,
+                modifier = Modifier.quietClickable { vm.edit { setTripleTapContact("", "") } }.padding(bottom = 8.dp),
+            )
         }
     }
 }

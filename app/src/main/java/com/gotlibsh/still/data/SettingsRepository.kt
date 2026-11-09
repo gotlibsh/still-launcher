@@ -34,6 +34,8 @@ class SettingsRepository(private val context: Context) {
         val appNames = stringPreferencesKey("app_names")
         val homeDeviceLabels = stringPreferencesKey("home_device_labels")
         val homeDeviceIcons = stringPreferencesKey("home_device_icons")
+        val tripleTapPhone = stringPreferencesKey("triple_tap_phone")
+        val tripleTapName = stringPreferencesKey("triple_tap_name")
         val background = stringPreferencesKey("background")
         val wallpaperDim = intPreferencesKey("wallpaper_dim")
     }
@@ -63,6 +65,8 @@ class SettingsRepository(private val context: Context) {
         appNames = SettingsCodec.decodeNames(this[Keys.appNames]),
         homeDeviceLabels = SettingsCodec.decodeNames(this[Keys.homeDeviceLabels]),
         homeDeviceIcons = SettingsCodec.decodeNames(this[Keys.homeDeviceIcons]),
+        tripleTapPhone = this[Keys.tripleTapPhone].orEmpty(),
+        tripleTapName = this[Keys.tripleTapName].orEmpty(),
         background = Background.of(this[Keys.background]).id,
         wallpaperDim = (this[Keys.wallpaperDim] ?: 40).coerceIn(0, 80),
     )
@@ -86,6 +90,13 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setBackground(background: Background) = put(Keys.background, background.id)
     suspend fun setWallpaperDim(percent: Int) = context.dataStore.edit { it[Keys.wallpaperDim] = percent.coerceIn(0, 80) }
+
+    suspend fun setTripleTapContact(name: String, phoneDigits: String) {
+        context.dataStore.edit {
+            it[Keys.tripleTapName] = name.trim()
+            it[Keys.tripleTapPhone] = phoneDigits
+        }
+    }
 
     suspend fun setHomeDeviceIcon(deviceId: String, iconId: String) {
         context.dataStore.edit { prefs ->
