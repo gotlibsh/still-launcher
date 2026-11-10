@@ -15,9 +15,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
@@ -35,6 +33,9 @@ import com.gotlibsh.still.ui.StillColors
 import com.gotlibsh.still.ui.quietClickable
 import com.gotlibsh.still.widgets.HomeWidget
 import com.gotlibsh.still.widgets.WidgetHost
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -67,14 +68,16 @@ object HomeControlsWidget : HomeWidget {
             }
         }
 
-        // Google Home doesn't always push changes made elsewhere (its app, schedules), so read
-        // the devices again every time the home screen comes back and after each tap.
-        var refresh by remember { mutableIntStateOf(0) }
-        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refresh++ }
+        // Listen to Google Home only while the home screen is visible. Leaving for a moment
+        // (opening an app and coming back) keeps the same connection; after 2 minutes away it
+        // is closed, and coming back opens a fresh one, which also picks up changes made
+        // elsewhere (Google Home app, schedules). A tap re-reads right away.
         var switches by remember { mutableStateOf<List<HomeSwitch>?>(null) }
-        LaunchedEffect(repo, refresh) { repo.switches().collect { switches = it } }
-        val pending = remember { mutableStateMapOf<String, Boolean>() }
         val scope = rememberCoroutineScope()
+        val listener = remember(repo) { Listener(scope) { repo.switches().collect { switches = it } } }
+        LifecycleEventEffect(Lifecycle.Event.ON_START) { listener.start() }
+        LifecycleEventEffect(Lifecycle.Event.ON_STOP) { listener.stopSoon() }
+        val pending = remember { mutableStateMapOf<String, Boolean>() }
 
         // Icon + short word per switch, up to four per row. Bright = on, faint = off,
         // crossed out = offline. Tap one to flip it.
@@ -106,7 +109,7 @@ object HomeControlsWidget : HomeWidget {
                         scope.launch {
                             val ok = repo.setOn(id, target)
                             pending.remove(id)
-                            refresh++
+                            listener.restart()
                             if (!ok) Toast.makeText(context, "Couldn't switch ${device.name}", Toast.LENGTH_SHORT).show()
                         }
                     },
@@ -129,6 +132,35 @@ object HomeControlsWidget : HomeWidget {
         SwitchIcon.of(overrides[id]) ?: SwitchLabels.icon(device?.name.orEmpty(), device?.typeNames.orEmpty())
 
     private const val PER_ROW = 4
+
+    /** Keeps one Google Home subscription running, closing it a while after you leave. */
+    private class Listener(private val scope: CoroutineScope, private val listen: suspend () -> Unit) {
+        private var job: Job? = null
+        private var pendingStop: Job? = null
+
+        fun start() {
+            pendingStop?.cancel()
+            pendingStop = null
+            if (job?.isActive != true) job = scope.launch { listen() }
+        }
+
+        fun stopSoon() {
+            pendingStop?.cancel()
+            pendingStop = scope.launch {
+                delay(KEEP_WHILE_AWAY_MS)
+                job?.cancel()
+                job = null
+            }
+        }
+
+        fun restart() {
+            job?.cancel()
+            job = null
+            start()
+        }
+    }
+
+    private const val KEEP_WHILE_AWAY_MS = 2 * 60 * 1000L
 
     @Composable
     private fun Dim(text: String, modifier: Modifier = Modifier) =
