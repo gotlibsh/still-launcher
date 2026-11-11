@@ -5,8 +5,8 @@ name: Release
 on:
   push:
     branches: [main]
-    # Text-only changes (README, privacy policy) don't need a new app version.
-    paths-ignore: ["**.md"]
+    # Text-only changes (README, privacy policy, the website in docs/) don't need a new app version.
+    paths-ignore: ["**.md", "docs/**"]
   workflow_dispatch:
 
 permissions:
