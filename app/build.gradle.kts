@@ -42,13 +42,28 @@ android {
             manifestPlaceholders["appLabel"] = "Still dev"
         }
         release {
-            isMinifyEnabled = false
+            // R8 removes unused code (most of the Google Home SDK) and shrinks the download.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = if (releaseKeystore != null) {
                 signingConfigs.getByName("release")
             } else {
                 // Without the release key (local builds), fall back to the debug key.
                 signingConfigs.getByName("debug")
             }
+        }
+    }
+    buildTypes {
+        // The shrunk release code, but installed as "Still dev" with the debug key, so the
+        // small build can be tried on a phone (gradlew installShrunk) before it is released.
+        create("shrunk") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-shrunk"
+            manifestPlaceholders["appLabel"] = "Still dev"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
     compileOptions {
