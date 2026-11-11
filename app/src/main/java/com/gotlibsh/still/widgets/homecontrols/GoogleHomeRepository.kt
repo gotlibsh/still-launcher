@@ -42,7 +42,15 @@ import com.google.home.matter.standard.ThermostatDevice
 import com.google.home.matter.standard.WaterHeaterDevice
 import android.util.Log
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -121,6 +129,42 @@ class GoogleHomeRepository(private val context: Context) {
             }
             .catch { emit(emptyList()) }
 
+    // --- One shared subscription for the home screen ---------------------------------------
+    // It lives here, not in the widget, so moving between home, the drawer and settings keeps
+    // it. It closes 2 minutes after the home screen stops needing it. Main thread only.
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val _live = MutableStateFlow<List<HomeSwitch>?>(null)
+
+    /** Latest device states for the home screen; null until the first answer arrives. */
+    val live: StateFlow<List<HomeSwitch>?> = _live.asStateFlow()
+    private var liveJob: Job? = null
+    private var pendingStop: Job? = null
+
+    /** The home screen is showing switches: make sure we're listening. */
+    fun watch() {
+        pendingStop?.cancel()
+        pendingStop = null
+        if (liveJob?.isActive != true) liveJob = scope.launch { switches().collect { _live.value = it } }
+    }
+
+    /** The home screen went away: stop listening if it doesn't come back soon. */
+    fun unwatchSoon() {
+        if (pendingStop?.isActive == true) return
+        pendingStop = scope.launch {
+            delay(KEEP_WHILE_AWAY_MS)
+            liveJob?.cancel()
+            liveJob = null
+        }
+    }
+
+    /** Reads everything again right now (after a tap). Keeps showing the old states meanwhile. */
+    fun reread() {
+        liveJob?.cancel()
+        liveJob = null
+        watch()
+    }
+
     /** Turns a device on or off. Returns false if it failed. */
     suspend fun setOn(id: String, on: Boolean): Boolean {
         val control = controls[id] ?: return false
@@ -149,6 +193,8 @@ class GoogleHomeRepository(private val context: Context) {
     }
 
     private companion object {
+        const val KEEP_WHILE_AWAY_MS = 2 * 60 * 1000L
+
         val TRAITS: List<TraitFactory<out Trait>> = listOf(OnOff)
 
         /** Device kinds that commonly have an on/off control (ACs, boilers, plugs, lights…). */

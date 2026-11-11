@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -29,7 +33,11 @@ object ClockWidget : HomeWidget {
     @Composable
     override fun Content(host: WidgetHost) {
         val context = LocalContext.current
-        val now by produceState(LocalDateTime.now()) {
+        // The minute timer pauses while the phone sleeps, so restart it (and show the right
+        // time at once) every time the screen comes back.
+        var resumes by remember { mutableIntStateOf(0) }
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { resumes++ }
+        val now by produceState(LocalDateTime.now(), resumes) {
             while (true) {
                 value = LocalDateTime.now()
                 delay(60_000L - System.currentTimeMillis() % 60_000L)

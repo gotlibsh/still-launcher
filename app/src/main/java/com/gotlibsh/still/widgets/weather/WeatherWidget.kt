@@ -12,6 +12,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -51,13 +52,14 @@ object WeatherWidget : HomeWidget {
         val modifier = Modifier
             .pointerInput(places.size) {
                 if (places.size < 2) return@pointerInput
+                val swipe = SWIPE_DISTANCE.toPx()
                 var total = 0f
                 detectHorizontalDragGestures(
                     onDragStart = { total = 0f },
                     onDragEnd = {
                         val step = when {
-                            total < -SWIPE_PX -> 1
-                            total > SWIPE_PX -> -1
+                            total < -swipe -> 1
+                            total > swipe -> -1
                             else -> 0
                         }
                         if (step != 0) repo.select(Math.floorMod(repo.selectedIndex.value + step, places.size))
@@ -112,5 +114,5 @@ object WeatherWidget : HomeWidget {
     @Composable
     private fun Dim(text: String) = Text(text, fontSize = 14.sp, color = StillColors.dim)
 
-    private const val SWIPE_PX = 80f
+    private val SWIPE_DISTANCE = 28.dp
 }

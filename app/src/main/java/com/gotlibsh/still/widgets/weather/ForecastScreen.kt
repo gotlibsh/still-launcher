@@ -18,6 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -71,7 +74,9 @@ fun ForecastScreen(
 private fun PlaceForecast(place: WeatherPlace, fahrenheit: Boolean) {
     val repo = LocalContext.current.stillApp().weather
     // first = finished loading, second = the forecast (null if it failed).
-    val result by produceState<Pair<Boolean, Forecast?>>(false to null, place, fahrenheit) {
+    var attempt by remember { mutableIntStateOf(0) }
+    val result by produceState<Pair<Boolean, Forecast?>>(false to null, place, fahrenheit, attempt) {
+        value = false to null
         value = true to repo.forecast(place, fahrenheit)
     }
 
@@ -85,7 +90,16 @@ private fun PlaceForecast(place: WeatherPlace, fahrenheit: Boolean) {
         Spacer(Modifier.height(16.dp))
         val f = result.second
         if (f == null) {
-            Text(if (result.first) "Weather unavailable" else "…", color = StillColors.dim, fontSize = 16.sp)
+            if (result.first) {
+                Text(
+                    "Weather unavailable. Tap to try again.",
+                    color = StillColors.dim,
+                    fontSize = 16.sp,
+                    modifier = Modifier.quietClickable { attempt++ },
+                )
+            } else {
+                Text("…", color = StillColors.dim, fontSize = 16.sp)
+            }
         } else {
             ForecastBody(f)
         }
@@ -99,7 +113,7 @@ private fun ForecastBody(f: Forecast) {
         Text("${f.temperature}${f.unit}", color = StillColors.text, fontSize = 56.sp, fontWeight = FontWeight.Light)
         Text(f.description, color = StillColors.text, fontSize = 18.sp)
         Text(
-            "feels ${f.feelsLike}° · humidity ${f.humidity}% · wind ${f.windKmh} km/h",
+            "feels ${f.feelsLike}° · humidity ${f.humidity}% · wind ${f.windKmh} ${f.windUnit}",
             color = StillColors.dim,
             fontSize = 14.sp,
         )

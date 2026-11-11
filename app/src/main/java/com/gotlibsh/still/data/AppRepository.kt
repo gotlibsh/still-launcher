@@ -80,7 +80,11 @@ class AppRepository(private val context: Context) {
     }
 
     fun uninstall(app: AppInfo) {
-        startSafely(Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.component.packageName}")))
+        // EXTRA_USER makes it the copy in that profile (e.g. work), not always the personal one.
+        startSafely(
+            Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.component.packageName}"))
+                .putExtra(Intent.EXTRA_USER, app.user)
+        )
     }
 
     /** Starts any intent from the launcher without crashing if nothing can handle it. */

@@ -1,6 +1,7 @@
 package com.gotlibsh.still.widgets.weather
 
 import com.gotlibsh.still.data.WeatherPlace
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +54,8 @@ class WeatherRepository {
             val weather = OpenMeteoParser.parseForecast(body, place, fahrenheit, System.currentTimeMillis())
             nowCache[place to fahrenheit] = weather
             WeatherState.Ready(weather)
+        } catch (e: CancellationException) {
+            throw e // switched city mid-request: not a failure
         } catch (e: Exception) {
             WeatherState.Failed("Weather unavailable", if (sameRequest) last else null)
         }
@@ -68,7 +71,7 @@ class WeatherRepository {
             forecastCache[key]?.let { (at, f) -> if (System.currentTimeMillis() - at < FORECAST_MAX_AGE_MILLIS) return f }
         }
         return try {
-            val unit = if (fahrenheit) "&temperature_unit=fahrenheit" else ""
+            val unit = if (fahrenheit) "&temperature_unit=fahrenheit&wind_speed_unit=mph" else ""
             val url = "https://api.open-meteo.com/v1/forecast" +
                 "?latitude=${place.latitude}&longitude=${place.longitude}" +
                 "&current=temperature_2m,apparent_temperature,weather_code,relative_humidity_2m,wind_speed_10m" +
@@ -78,6 +81,8 @@ class WeatherRepository {
             val f = OpenMeteoForecastParser.parse(httpGet(url), place, fahrenheit)
             synchronized(forecastCache) { forecastCache[key] = System.currentTimeMillis() to f }
             f
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             null
         }

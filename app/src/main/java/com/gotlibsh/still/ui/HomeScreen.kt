@@ -51,16 +51,18 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
+                // In dp, so a swipe is the same finger distance on every screen.
+                val swipe = SWIPE_DISTANCE.toPx()
                 var total = Offset.Zero
                 detectDragGestures(
                     onDragStart = { total = Offset.Zero },
                     onDragEnd = {
                         val (x, y) = total
                         when {
-                            abs(y) >= abs(x) && y < -SWIPE_PX -> openDrawer()
-                            abs(y) >= abs(x) && y > SWIPE_PX -> expandNotifications(context)
-                            abs(x) > abs(y) && x < -SWIPE_PX -> swipeLeft()
-                            abs(x) > abs(y) && x > SWIPE_PX -> swipeRight()
+                            abs(y) >= abs(x) && y < -swipe -> openDrawer()
+                            abs(y) >= abs(x) && y > swipe -> expandNotifications(context)
+                            abs(x) > abs(y) && x < -swipe -> swipeLeft()
+                            abs(x) > abs(y) && x > swipe -> swipeRight()
                         }
                     },
                 ) { _, dragAmount -> total += dragAmount }
@@ -102,7 +104,7 @@ fun HomeScreen(
     }
 }
 
-private const val SWIPE_PX = 120f
+private val SWIPE_DISTANCE = 44.dp
 private const val TAP_GAP_MS = 450L
 
 /** Pulls down the notification shade. Uses a hidden API, so it fails silently if blocked. */

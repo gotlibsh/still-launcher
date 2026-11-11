@@ -89,6 +89,7 @@ data class Forecast(
     val feelsLike: Int,
     val code: Int,
     val humidity: Int,
+    /** km/h, or mph when [fahrenheit]. */
     val windKmh: Int,
     /** Next 12 hours, starting with the current hour. */
     val hours: List<HourForecast>,
@@ -97,6 +98,7 @@ data class Forecast(
 ) {
     val description: String get() = WeatherCodes.describe(code)
     val unit: String get() = if (fahrenheit) "°F" else "°C"
+    val windUnit: String get() = if (fahrenheit) "mph" else "km/h"
 }
 
 /** [time] is local "HH:mm". */

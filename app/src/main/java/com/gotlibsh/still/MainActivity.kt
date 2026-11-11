@@ -105,8 +105,8 @@ class MainActivity : ComponentActivity() {
                     host = host,
                     widgets = WidgetRegistry.visible(s),
                     onOpenDrawer = { screen = Screen.Drawer },
-                    onSwipeLeft = { launchSwipeApp(s.swipeLeftAppKey, apps, "left") },
-                    onSwipeRight = { launchSwipeApp(s.swipeRightAppKey, apps, "right") },
+                    onSwipeLeft = { launchSwipeApp(s.swipeLeftAppKey, apps) },
+                    onSwipeRight = { launchSwipeApp(s.swipeRightAppKey, apps) },
                     onTripleTap = { openTripleTapChat(s) },
                 )
                 Screen.Drawer -> AppDrawer(
@@ -147,21 +147,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openTripleTapChat(s: LauncherSettings) {
-        when {
-            s.tripleTapPhone.isBlank() ->
-                Toast.makeText(this, "Choose a WhatsApp contact for triple tap in settings", Toast.LENGTH_SHORT).show()
-            !WhatsApp.openChat(this, s.tripleTapPhone) ->
-                Toast.makeText(this, "WhatsApp isn't installed", Toast.LENGTH_SHORT).show()
+        // Nothing chosen: stay quiet, an accidental triple tap shouldn't nag.
+        if (s.tripleTapPhone.isBlank()) return
+        if (!WhatsApp.openChat(this, s.tripleTapPhone)) {
+            Toast.makeText(this, "WhatsApp isn't installed", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun launchSwipeApp(key: String, apps: List<AppInfo>, direction: String) {
-        val app = apps.firstOrNull { it.key == key }
-        if (app != null) {
-            vm.appRepository.launch(app)
-        } else {
-            Toast.makeText(this, "Choose an app for swipe $direction in settings", Toast.LENGTH_SHORT).show()
-        }
+    /** Opens the app chosen for a swipe. No app chosen (or it was uninstalled): do nothing. */
+    private fun launchSwipeApp(key: String, apps: List<AppInfo>) {
+        apps.firstOrNull { it.key == key }?.let(vm.appRepository::launch)
     }
 
     private inner class ActivityWidgetHost(
