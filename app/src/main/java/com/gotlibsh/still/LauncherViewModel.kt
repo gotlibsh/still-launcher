@@ -1,6 +1,9 @@
 package com.gotlibsh.still
 
 import android.app.Application
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.gotlibsh.still.data.AppInfo
@@ -58,6 +61,32 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             } finally {
                 awayForGoogleHome = false
             }
+        }
+    }
+
+    /** Writes all settings to the file the user picked. [done] gets true on success. */
+    fun backupTo(uri: Uri, done: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = runCatching {
+                val json = still.settings.exportBackup()
+                withContext(Dispatchers.IO) {
+                    still.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(json.toByteArray()) }
+                }
+            }.isSuccess
+            done(ok)
+        }
+    }
+
+    /** Replaces all settings with the picked backup file. [done] gets true on success. */
+    fun restoreFrom(uri: Uri, done: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val ok = runCatching {
+                val json = withContext(Dispatchers.IO) {
+                    still.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() }
+                }
+                still.settings.importBackup(json)
+            }.getOrDefault(false)
+            done(ok)
         }
     }
 

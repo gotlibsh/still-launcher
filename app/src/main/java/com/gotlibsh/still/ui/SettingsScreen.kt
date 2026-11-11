@@ -171,6 +171,10 @@ fun SettingsScreen(
             }
         }
 
+        // Backup
+        item { Section("Backup") }
+        item { BackupSettings(vm) }
+
         // System
         item { Section("Phone") }
         item { SettingRow("Set Still as the home app") { vm.appRepository.startSafely(Intent(Settings.ACTION_HOME_SETTINGS)) } }
@@ -325,6 +329,39 @@ private fun HomeDevicePickerDialog(
                 }
             }
         }
+    }
+}
+
+/** Save every setting to a file you choose, or load one back (new phone, reinstall). */
+@Composable
+private fun BackupSettings(vm: LauncherViewModel) {
+    val context = LocalContext.current
+    fun say(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+    // Android's own file pickers: Still only gets the one file you pick, no storage permission.
+    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        vm.awayForPicker = false
+        if (uri != null) vm.backupTo(uri) { ok -> say(if (ok) "Settings saved" else "Couldn't save the file") }
+    }
+    val open = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        vm.awayForPicker = false
+        if (uri != null) vm.restoreFrom(uri) { ok -> say(if (ok) "Settings restored" else "That isn't a Still backup") }
+    }
+    Column {
+        SettingRow("Save settings to a file") {
+            vm.awayForPicker = true
+            runCatching { save.launch("still-settings.json") }
+                .onFailure { vm.awayForPicker = false; say("No file picker found") }
+        }
+        SettingRow("Restore settings from a file") {
+            vm.awayForPicker = true
+            runCatching { open.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) }
+                .onFailure { vm.awayForPicker = false; say("No file picker found") }
+        }
+        Text(
+            "Restoring replaces all current settings. Google Home needs connecting again on a new phone.",
+            color = StillColors.faint,
+            fontSize = 14.sp,
+        )
     }
 }
 

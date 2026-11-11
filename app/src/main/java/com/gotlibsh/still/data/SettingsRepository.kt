@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "still_settings")
@@ -124,6 +125,26 @@ class SettingsRepository(private val context: Context) {
             if (clean.isEmpty()) names.remove(appKey) else names[appKey] = clean
             prefs[Keys.appNames] = SettingsCodec.encodeNames(names)
         }
+    }
+
+    /** Every saved setting as a JSON backup file's text. */
+    suspend fun exportBackup(): String =
+        BackupCodec.encode(context.dataStore.data.first().asMap().mapKeys { it.key.name })
+
+    /** Replaces all settings with the ones in a backup. Returns false if it isn't a Still backup. */
+    suspend fun importBackup(json: String): Boolean {
+        val values = BackupCodec.decode(json) ?: return false
+        context.dataStore.edit { prefs ->
+            prefs.clear()
+            values.forEach { (key, value) ->
+                when (value) {
+                    is String -> prefs[stringPreferencesKey(key)] = value
+                    is Boolean -> prefs[booleanPreferencesKey(key)] = value
+                    is Int -> prefs[intPreferencesKey(key)] = value
+                }
+            }
+        }
+        return true
     }
 
     private suspend fun put(key: Preferences.Key<String>, value: String) {
