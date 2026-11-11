@@ -35,6 +35,10 @@ data class LauncherSettings(
     /** Triple tap on empty home space opens a WhatsApp chat with this number (digits only). */
     val tripleTapPhone: String = "",
     val tripleTapName: String = "",
+    /** Apps opened from the drawer, newest first ([AppInfo.key]), at most [RECENT_KEPT]. */
+    val recentApps: List<String> = emptyList(),
+    /** How many recent apps the drawer shows above the list; 0 = off. */
+    val recentCount: Int = 3,
     /** A [Background] id. */
     val background: String = Background.DEFAULT.id,
     /** How much to darken the phone's wallpaper, 0-80 (percent). */
@@ -42,6 +46,8 @@ data class LauncherSettings(
 ) {
     companion object {
         const val MAX_FAVORITES = 8
+        const val RECENT_KEPT = 10
+        val RECENT_COUNT_STEPS = listOf(0, 1, 2, 3, 4, 5)
     }
 }
 
@@ -117,6 +123,15 @@ object SettingsCodec {
         val known = saved.filter { it in available }.distinct()
         return known + available.filter { it !in known }
     }
+
+    /** [key] moved to the front of the recent list, without duplicates, at most [max] long. */
+    fun pushRecent(recent: List<String>, key: String, max: Int = LauncherSettings.RECENT_KEPT): List<String> =
+        (listOf(key) + recent.filter { it != key }).take(max)
+
+    /** The first [count] recent apps that still exist and aren't hidden, newest first. */
+    fun <T> recentToShow(recent: List<String>, byKey: Map<String, T>, hidden: Set<String>, count: Int): List<T> =
+        if (count <= 0) emptyList()
+        else recent.asSequence().filter { it !in hidden }.mapNotNull { byKey[it] }.take(count).toList()
 
     /** Moves [id] one step up (delta = -1) or down (delta = +1). */
     fun move(list: List<String>, id: String, delta: Int): List<String> {

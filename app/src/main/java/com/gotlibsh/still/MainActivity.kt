@@ -112,7 +112,11 @@ class MainActivity : ComponentActivity() {
                 Screen.Drawer -> AppDrawer(
                     apps = apps,
                     settings = s,
-                    onLaunch = { app -> vm.appRepository.launch(app); screen = Screen.Home },
+                    onLaunch = { app ->
+                        vm.appRepository.launch(app)
+                        vm.edit { noteRecentApp(app.key) }
+                        screen = Screen.Home
+                    },
                     onClose = { screen = Screen.Home },
                     onToggleFavorite = vm::toggleFavorite,
                     onHide = vm::hide,

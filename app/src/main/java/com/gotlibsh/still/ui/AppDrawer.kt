@@ -36,6 +36,8 @@ import kotlinx.coroutines.delay
 import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.AppSearch
 import com.gotlibsh.still.data.LauncherSettings
+import com.gotlibsh.still.data.SettingsCodec
+import androidx.compose.foundation.layout.width
 
 /** All apps as a plain list, with the keyboard up and search focused. */
 @Composable
@@ -54,6 +56,10 @@ fun AppDrawer(
     var query by remember { mutableStateOf("") }
     val visible = remember(apps, settings.hiddenApps) { apps.filter { it.key !in settings.hiddenApps } }
     val results = remember(visible, query) { AppSearch.filterAny(visible, query, AppInfo::searchLabels) }
+    // Recently opened apps above the full list, only while the search box is empty.
+    val recent = remember(apps, settings.recentApps, settings.hiddenApps, settings.recentCount) {
+        SettingsCodec.recentToShow(settings.recentApps, apps.associateBy { it.key }, settings.hiddenApps, settings.recentCount)
+    }
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
 
@@ -87,6 +93,30 @@ fun AppDrawer(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(vertical = 16.dp),
         ) {
+            if (query.isBlank() && recent.isNotEmpty()) {
+                items(recent, key = { "recent-" + it.key }) { app ->
+                    DrawerRow(
+                        app = app,
+                        isFavorite = app.key in settings.favorites,
+                        canAddFavorite = settings.favorites.size < LauncherSettings.MAX_FAVORITES,
+                        onLaunch = { onLaunch(app) },
+                        onToggleFavorite = { onToggleFavorite(app) },
+                        onHide = { onHide(app) },
+                        onRename = { renaming = app },
+                        onAppInfo = { onAppInfo(app) },
+                        onUninstall = { onUninstall(app) },
+                    )
+                }
+                item(key = "recent-divider") {
+                    Box(
+                        Modifier
+                            .padding(vertical = 12.dp)
+                            .width(48.dp)
+                            .height(1.dp)
+                            .background(StillColors.faint),
+                    )
+                }
+            }
             items(results, key = { it.key }) { app ->
                 DrawerRow(
                     app = app,

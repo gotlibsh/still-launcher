@@ -54,4 +54,16 @@ class SettingsCodecTest {
         assertEquals("KLD", SettingsCodec.initials("kitchen-light, desk lamp"))
         assertEquals("?", SettingsCodec.initials("  "))
     }
+
+    @Test fun recentAppsNewestFirstWithoutDuplicates() {
+        assertEquals(listOf("b", "a", "c"), SettingsCodec.pushRecent(listOf("a", "b", "c"), "b"))
+        assertEquals(listOf("z", "a", "b"), SettingsCodec.pushRecent(listOf("a", "b", "c"), "z", max = 3))
+    }
+
+    @Test fun recentToShowSkipsHiddenAndUninstalled() {
+        val apps = mapOf("a" to "A", "b" to "B", "c" to "C", "d" to "D")
+        val recent = listOf("gone", "b", "c", "a", "d")
+        assertEquals(listOf("B", "A"), SettingsCodec.recentToShow(recent, apps, hidden = setOf("c"), count = 2))
+        assertEquals(emptyList<String>(), SettingsCodec.recentToShow(recent, apps, hidden = emptySet(), count = 0))
+    }
 }

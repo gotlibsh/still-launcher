@@ -36,6 +36,8 @@ class SettingsRepository(private val context: Context) {
         val homeDeviceLabels = stringPreferencesKey("home_device_labels")
         val homeDeviceIcons = stringPreferencesKey("home_device_icons")
         val tripleTapPhone = stringPreferencesKey("triple_tap_phone")
+        val recentApps = stringPreferencesKey("recent_apps")
+        val recentCount = intPreferencesKey("recent_count")
         val tripleTapName = stringPreferencesKey("triple_tap_name")
         val background = stringPreferencesKey("background")
         val wallpaperDim = intPreferencesKey("wallpaper_dim")
@@ -67,6 +69,8 @@ class SettingsRepository(private val context: Context) {
         homeDeviceLabels = SettingsCodec.decodeNames(this[Keys.homeDeviceLabels]),
         homeDeviceIcons = SettingsCodec.decodeNames(this[Keys.homeDeviceIcons]),
         tripleTapPhone = this[Keys.tripleTapPhone].orEmpty(),
+        recentApps = SettingsCodec.decodeList(this[Keys.recentApps]),
+        recentCount = (this[Keys.recentCount] ?: 3).coerceIn(0, 5),
         tripleTapName = this[Keys.tripleTapName].orEmpty(),
         background = Background.of(this[Keys.background]).id,
         wallpaperDim = (this[Keys.wallpaperDim] ?: 40).coerceIn(0, 80),
@@ -91,6 +95,16 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setBackground(background: Background) = put(Keys.background, background.id)
     suspend fun setWallpaperDim(percent: Int) = context.dataStore.edit { it[Keys.wallpaperDim] = percent.coerceIn(0, 80) }
+
+    /** Remembers that [appKey] was just opened from the drawer. */
+    suspend fun noteRecentApp(appKey: String) {
+        context.dataStore.edit { prefs ->
+            val recent = SettingsCodec.pushRecent(SettingsCodec.decodeList(prefs[Keys.recentApps]), appKey)
+            prefs[Keys.recentApps] = SettingsCodec.encodeList(recent)
+        }
+    }
+
+    suspend fun setRecentCount(count: Int) = context.dataStore.edit { it[Keys.recentCount] = count.coerceIn(0, 5) }
 
     suspend fun setTripleTapContact(name: String, phoneDigits: String) {
         context.dataStore.edit {

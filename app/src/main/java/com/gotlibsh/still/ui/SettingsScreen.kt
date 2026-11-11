@@ -158,6 +158,13 @@ fun SettingsScreen(
             }
         }
         item {
+            val n = settings.recentCount
+            SettingRow("Recent apps at the top of the app list", if (n == 0) "off" else "$n") {
+                val steps = LauncherSettings.RECENT_COUNT_STEPS
+                vm.edit { setRecentCount(steps.firstOrNull { it > n } ?: steps.first()) }
+            }
+        }
+        item {
             SettingRow("Open app when search has one match", if (settings.autoLaunchSingleMatch) "on" else "off") {
                 vm.edit { setAutoLaunch(!settings.autoLaunchSingleMatch) }
             }
