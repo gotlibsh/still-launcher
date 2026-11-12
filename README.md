@@ -1,5 +1,7 @@
 # Still
 
+Website: <https://stilllauncher.app> · [Privacy policy](https://stilllauncher.app/privacy.html)
+
 A quiet, text-only Android home screen. No icons, no badges, no feed: just the time,
 the weather, a note to yourself, and a handful of apps. Everything else is one swipe away.
 
