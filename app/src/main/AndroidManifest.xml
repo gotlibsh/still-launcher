@@ -8,6 +8,8 @@
     <!-- Swipe down on home to pull down notifications. -->
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
+    <!-- "Uninstall" in the app list: lets Still open Android's own uninstall prompt (you still confirm it). -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <!-- Only for the optional "Contacts" search helper; asked for when you switch it on. -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 

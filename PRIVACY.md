@@ -42,6 +42,8 @@ settings to a file in a place you choose; that file is yours to keep or delete.
 
 - **Internet**: weather and, if connected, Google Home.
 - **See installed apps**: needed to list and open your apps, as any launcher does.
+- **Request uninstall**: so "Uninstall" in the app list can open Android's own uninstall prompt,
+  which you still confirm yourself.
 - **Set alarm / expand status bar**: so tapping the clock opens alarms and swiping down opens
   notifications.
 
