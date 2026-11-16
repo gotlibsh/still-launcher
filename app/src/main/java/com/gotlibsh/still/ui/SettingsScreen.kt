@@ -1,7 +1,9 @@
 package com.gotlibsh.still.ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.ContactsContract
+import com.gotlibsh.still.search.SearchHelpers
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -170,6 +172,10 @@ fun SettingsScreen(
             }
         }
 
+        // Search helpers
+        item { Section("Search helpers") }
+        item { SearchHelperSettings(settings, vm) }
+
         // Hidden apps
         if (settings.hiddenApps.isNotEmpty()) {
             item { Section("Hidden apps (tap to show again)") }
@@ -335,6 +341,47 @@ private fun HomeDevicePickerDialog(
                     )
                 }
             }
+        }
+    }
+}
+
+/** One on/off switch per search helper. Switching one on asks for its permission if it needs one. */
+@Composable
+private fun SearchHelperSettings(settings: LauncherSettings, vm: LauncherViewModel) {
+    val context = LocalContext.current
+    val enabled = settings.searchHelpers ?: SearchHelpers.defaults
+    var waitingFor by remember { mutableStateOf<String?>(null) }
+    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        vm.awayForPicker = false
+        val id = waitingFor
+        waitingFor = null
+        if (id != null && granted) vm.edit { setSearchHelpers(enabled + id) }
+        if (!granted) Toast.makeText(context, "Without that permission this helper stays off", Toast.LENGTH_SHORT).show()
+    }
+    Column {
+        Text(
+            "Extra things the app list's search box can do. Apps always come first.",
+            color = StillColors.faint,
+            fontSize = 14.sp,
+        )
+        SearchHelpers.all.forEach { helper ->
+            val permission = helper.permission
+            // A helper whose permission was taken away in phone settings counts as off.
+            val allowed = permission == null ||
+                context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+            val on = helper.id in enabled && allowed
+            SettingRow(helper.title, if (on) "on" else "off") {
+                when {
+                    on -> vm.edit { setSearchHelpers(enabled - helper.id) }
+                    allowed -> vm.edit { setSearchHelpers(enabled + helper.id) }
+                    else -> {
+                        waitingFor = helper.id
+                        vm.awayForPicker = true
+                        askPermission.launch(permission!!)
+                    }
+                }
+            }
+            Text(helper.description, color = StillColors.faint, fontSize = 14.sp, modifier = Modifier.padding(bottom = 6.dp))
         }
     }
 }

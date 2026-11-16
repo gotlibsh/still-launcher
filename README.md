@@ -54,6 +54,10 @@ and checks its SHA-256 (see `settings.gradle.kts`).
 
 - **Background**: black, a few calm dark colors, or your phone's own wallpaper with a dim level.
 - **Rename apps**: long-press an app in the list and pick *Rename*. Search finds it by either name.
+- **Search helpers**: extra rows in the app list's search, each with its own on/off switch:
+  a calculator (`12*7`), contacts (find a person, then call or WhatsApp; off by default, needs the
+  Contacts permission) and web search. To add one, implement `SearchHelper` and list it in
+  `search/SearchHelper.kt`.
 - **Backup**: *Save settings to a file* writes everything (favorites, names, cities, note, gestures)
   to one JSON file you choose; *Restore settings from a file* loads it back. The file includes your
   note and the triple-tap phone number, so keep it somewhere private. Google Home has to be
@@ -131,5 +135,6 @@ Run the unit tests with `gradlew test`.
 
 Still makes two kinds of network calls: the weather request to Open-Meteo with the coordinates
 of the cities you chose, and, only if you connect it, Google Home through Google's own SDK.
-There is no analytics or tracking. Contacts are never read; the triple-tap setting uses Android's
-picker, which hands over just the one number you pick.
+There is no analytics or tracking. Contacts are only read if you switch on the Contacts search
+helper, and then only searched on the phone. The triple-tap setting uses Android's picker, which
+hands over just the one number you pick.

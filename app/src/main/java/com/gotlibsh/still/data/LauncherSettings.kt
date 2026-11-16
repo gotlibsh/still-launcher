@@ -39,6 +39,8 @@ data class LauncherSettings(
     val recentApps: List<String> = emptyList(),
     /** How many recent apps the drawer shows above the list; 0 = off. */
     val recentCount: Int = 3,
+    /** Ids of the search helpers that are switched on; null = each helper's own default. */
+    val searchHelpers: Set<String>? = null,
     /** A [Background] id. */
     val background: String = Background.DEFAULT.id,
     /** How much to darken the phone's wallpaper, 0-80 (percent). */

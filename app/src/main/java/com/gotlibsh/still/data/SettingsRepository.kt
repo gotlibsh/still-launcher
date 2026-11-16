@@ -38,6 +38,7 @@ class SettingsRepository(private val context: Context) {
         val tripleTapPhone = stringPreferencesKey("triple_tap_phone")
         val recentApps = stringPreferencesKey("recent_apps")
         val recentCount = intPreferencesKey("recent_count")
+        val searchHelpers = stringPreferencesKey("search_helpers")
         val tripleTapName = stringPreferencesKey("triple_tap_name")
         val background = stringPreferencesKey("background")
         val wallpaperDim = intPreferencesKey("wallpaper_dim")
@@ -71,6 +72,7 @@ class SettingsRepository(private val context: Context) {
         tripleTapPhone = this[Keys.tripleTapPhone].orEmpty(),
         recentApps = SettingsCodec.decodeList(this[Keys.recentApps]),
         recentCount = (this[Keys.recentCount] ?: 3).coerceIn(0, 5),
+        searchHelpers = this[Keys.searchHelpers]?.let { SettingsCodec.decodeList(it).toSet() },
         tripleTapName = this[Keys.tripleTapName].orEmpty(),
         background = Background.of(this[Keys.background]).id,
         wallpaperDim = (this[Keys.wallpaperDim] ?: 40).coerceIn(0, 80),
@@ -103,6 +105,8 @@ class SettingsRepository(private val context: Context) {
             prefs[Keys.recentApps] = SettingsCodec.encodeList(recent)
         }
     }
+
+    suspend fun setSearchHelpers(ids: Set<String>) = put(Keys.searchHelpers, SettingsCodec.encodeList(ids))
 
     suspend fun setRecentCount(count: Int) = context.dataStore.edit { it[Keys.recentCount] = count.coerceIn(0, 5) }
 

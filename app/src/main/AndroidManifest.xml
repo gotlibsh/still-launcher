@@ -8,6 +8,9 @@
     <!-- Swipe down on home to pull down notifications. -->
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
+    <!-- Only for the optional "Contacts" search helper; asked for when you switch it on. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <!-- Lets the launcher see every app that has a launcher icon (Android 11+ package visibility). -->
     <queries>
         <intent>

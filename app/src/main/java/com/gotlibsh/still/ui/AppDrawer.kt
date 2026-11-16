@@ -37,6 +37,13 @@ import com.gotlibsh.still.data.AppInfo
 import com.gotlibsh.still.data.AppSearch
 import com.gotlibsh.still.data.LauncherSettings
 import com.gotlibsh.still.data.SettingsCodec
+import com.gotlibsh.still.search.HelperRow
+import com.gotlibsh.still.search.SearchHelpers
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.width
 
 /** All apps as a plain list, with the keyboard up and search focused. */
@@ -68,9 +75,25 @@ fun AppDrawer(
         focus.requestFocus()
         keyboard?.show()
     }
-    LaunchedEffect(results, query) {
-        if (settings.autoLaunchSingleMatch && query.isNotBlank() && results.size == 1) onLaunch(results.first())
+    // Extra rows from the search helpers (calculator, contacts, web search) for what's typed.
+    val context = LocalContext.current
+    val helpers = remember(settings.searchHelpers) {
+        SearchHelpers.enabled(settings.searchHelpers ?: SearchHelpers.defaults)
     }
+    var helperRows by remember { mutableStateOf<List<HelperRow>>(emptyList()) }
+    LaunchedEffect(results, query, helpers) {
+        val rows = if (query.isBlank()) emptyList() else withContext(Dispatchers.Default) {
+            helpers.flatMap { helper -> runCatching { helper.rows(context, query) }.getOrDefault(emptyList()) }
+        }
+        helperRows = rows
+        // One app left: open it, unless a helper found something you may be typing towards
+        // (a contact's name), in which case wait for your tap.
+        if (settings.autoLaunchSingleMatch && query.isNotBlank() && results.size == 1 && rows.none { it.holdsAutoOpen }) {
+            onLaunch(results.first())
+        }
+    }
+    val topRows = helperRows.filter { it.onTop }
+    val bottomRows = helperRows.filter { !it.onTop }
 
     Column(
         Modifier
@@ -86,13 +109,18 @@ fun AppDrawer(
             placeholder = "search",
             fontSize = 20,
             imeAction = ImeAction.Go,
-            onImeAction = { results.firstOrNull()?.let(onLaunch) },
+            onImeAction = {
+                val app = results.firstOrNull()
+                if (app != null) onLaunch(app)
+                else helperRows.firstOrNull()?.actions?.firstOrNull()?.run?.invoke(context)
+            },
             modifier = Modifier.fillMaxWidth().focusRequester(focus),
         )
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(vertical = 16.dp),
         ) {
+            items(topRows, key = { "helper-" + it.key }) { row -> HelperRowView(row) }
             if (query.isBlank() && recent.isNotEmpty()) {
                 items(recent, key = { "recent-" + it.key }) { app ->
                     DrawerRow(
@@ -130,8 +158,12 @@ fun AppDrawer(
                     onUninstall = { onUninstall(app) },
                 )
             }
-            if (results.isEmpty()) {
+            if (results.isEmpty() && helperRows.isEmpty()) {
                 item { Text("No apps match", color = StillColors.faint, fontSize = 16.sp) }
+            }
+            if (bottomRows.isNotEmpty()) {
+                if (results.isNotEmpty()) item(key = "helper-gap") { Spacer(Modifier.height(12.dp)) }
+                items(bottomRows, key = { "helper-" + it.key }) { row -> HelperRowView(row) }
             }
         }
     }
@@ -142,6 +174,33 @@ fun AppDrawer(
             onSave = { name -> onRename(app, name); renaming = null },
             onDismiss = { renaming = null },
         )
+    }
+}
+
+/** A quieter row than an app: what a search helper found. One action runs on tap; several open a menu. */
+@Composable
+private fun HelperRowView(row: HelperRow) {
+    val context = LocalContext.current
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .quietClickable {
+                    if (row.actions.size == 1) row.actions.first().run(context) else menu = true
+                }
+                .padding(vertical = 10.dp),
+        ) {
+            Text(row.title, fontSize = 18.sp, color = StillColors.dim, maxLines = 1)
+            Spacer(Modifier.width(12.dp))
+            Text(row.hint, fontSize = 14.sp, color = StillColors.faint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            row.actions.forEach { action ->
+                DropdownMenuItem(text = { Text(action.label) }, onClick = { menu = false; action.run(context) })
+            }
+        }
     }
 }
 

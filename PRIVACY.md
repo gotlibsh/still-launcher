@@ -1,6 +1,6 @@
 # Still: privacy policy
 
-_Last updated: 11 November 2026_
+_Last updated: 16 November 2026_
 
 Still is a minimalist Android home screen (launcher). It is a personal, non-commercial project.
 This page explains what data the app handles.
@@ -33,6 +33,8 @@ settings to a file in a place you choose; that file is yours to keep or delete.
   tap. This happens between your phone and Google under your Google account. Still does not send
   this information anywhere else. You can remove Still's access at any time in Still's settings or
   in your Google account's connected apps.
+- **Web search (only when you tap it).** The "search the web" row in the app search hands the text
+  you typed to your phone's search app or browser. Nothing is sent while you type.
 - **Opening other apps.** Gestures and links you set up (for example a WhatsApp chat or a notes
   link) simply open that app or link. What happens there is covered by that app's policy.
 
@@ -43,8 +45,14 @@ settings to a file in a place you choose; that file is yours to keep or delete.
 - **Set alarm / expand status bar**: so tapping the clock opens alarms and swiping down opens
   notifications.
 
-Still does not request access to your contacts, location, camera, microphone or files. Picking a
-contact or a backup file uses Android's own picker, which hands Still only the single item you choose.
+- **Contacts (optional, off by default)**: only if you switch on the "Contacts" search helper.
+  Still then looks up names in your phone's contacts as you type in the app search, on the phone
+  only. It does not copy, store or send your contacts. Switch the helper off, or remove the
+  permission in your phone's settings, at any time.
+
+Still does not request access to your location, camera, microphone or files. Picking a contact
+for the triple-tap gesture or a backup file uses Android's own picker, which hands Still only the
+single item you choose.
 
 ## Children
 
